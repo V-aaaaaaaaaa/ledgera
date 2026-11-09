@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LEDGERA - Ventas</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/ventas.css">
+</head>
+<body>
+
+    <!-- HEADER -->
+    <header class="app-header">
+        <button class="btn-back" id="btnBack" title="Volver al dashboard">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <h1 class="header-title">Ventas</h1>
+        <div class="header-user">
+            <span id="headerUserName">Admin</span>
+            <i class="fas fa-user-circle"></i>
+        </div>
+    </header>
+
+    <!-- CONTENIDO -->
+    <main class="app-main">
+        <div class="ventas-grid">
+
+            <!-- ============ COLUMNA IZQUIERDA: FORMULARIO ============ -->
+            <section class="venta-panel">
+
+                <h2 class="panel-title">
+                    <i class="fas fa-cash-register"></i> Nueva venta
+                </h2>
+
+                <!-- PRODUCTO -->
+                <div class="form-block">
+                    <label>Producto *</label>
+                    <div class="producto-selector" id="productoSelector">
+                        <div class="producto-display" id="productoDisplay">
+                            <span class="placeholder">Haz clic para seleccionar un producto</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <div class="producto-dropdown" id="productoDropdown">
+                            <div class="dropdown-search">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="productoSearch" placeholder="Buscar producto..." />
+                            </div>
+                            <div class="dropdown-list" id="productoList">
+                                <!-- Productos generados por JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CANTIDAD + PRECIO SUGERIDO -->
+                <div class="form-row-2">
+                    <div class="form-block">
+                        <label>Cantidad *</label>
+                        <div class="cantidad-control">
+                            <button type="button" class="btn-qty" id="btnQtyMinus">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <input type="number" id="ventaCantidad" value="1" min="1" />
+                            <button type="button" class="btn-qty" id="btnQtyPlus">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        <small class="hint" id="stockHint"></small>
+                    </div>
+
+                    <div class="form-block">
+                        <label>Precio sugerido</label>
+                        <input type="number" id="ventaPrecioSugerido" readonly />
+                    </div>
+                </div>
+
+                <div class="form-block">
+                    <label>Precio de venta (modificable) *</label>
+                    <input type="number" id="ventaPrecio" placeholder="0" min="0" step="100" />
+                    <small class="hint">Puedes ajustar el precio final.</small>
+                </div>
+
+                <!-- MÉTODO DE PAGO -->
+                <div class="form-block">
+                    <label>Método de pago *</label>
+                    <select id="metodoPago" class="select">
+                        <option value="">-- Selecciona --</option>
+                        <option value="efectivo">Efectivo</option>
+                        <option value="transferencia">Transferencia</option>
+                        <option value="credito">Crédito (Fiado)</option>
+                        <option value="mixto">Mixto</option>
+                    </select>
+                </div>
+
+                <!-- BLOQUE FIADO (oculto por defecto) -->
+                <div class="fiado-block" id="fiadoBlock" style="display:none;">
+                    <h3 class="fiado-title"><i class="fas fa-hand-holding-usd"></i> Datos del fiado</h3>
+
+                    <div class="form-row-2">
+                        <div class="form-block">
+                            <label>Nombre *</label>
+                            <input type="text" id="fiadoNombre" placeholder="Nombre del cliente" />
+                        </div>
+                        <div class="form-block">
+                            <label>Teléfono *</label>
+                            <input type="tel" id="fiadoTelefono" placeholder="Teléfono" />
+                        </div>
+                    </div>
+
+                    <div class="form-row-2">
+                        <div class="form-block">
+                            <label>Abono *</label>
+                            <input type="number" id="fiadoAbono" value="0" min="0" step="100" />
+                        </div>
+                        <div class="form-block">
+                            <label>Fecha de vencimiento *</label>
+                            <input type="date" id="fiadoVencimiento" />
+                        </div>
+                    </div>
+
+                    <div class="form-block">
+                        <label>Saldo</label>
+                        <input type="number" id="fiadoSaldo" readonly />
+                        <small class="hint">Saldo = total venta − abono.</small>
+                    </div>
+
+                    <button type="button" class="btn-secondary btn-block" id="btnGuardarFiado">
+                        <i class="fas fa-save"></i> Guardar fiado
+                    </button>
+                </div>
+
+                <!-- RESUMEN -->
+                <div class="resumen-venta">
+                    <div class="resumen-row">
+                        <span>Subtotal:</span>
+                        <strong id="resumenSubtotal">$0</strong>
+                    </div>
+                    <div class="resumen-row" id="resumenDeudaRow" style="display:none;">
+                        <span>Deuda:</span>
+                        <strong id="resumenDeuda" class="deuda-valor">$0</strong>
+                    </div>
+                    <div class="resumen-row total">
+                        <span>Total:</span>
+                        <strong id="resumenTotal">$0</strong>
+                    </div>
+                </div>
+
+                <button type="button" class="btn-primary btn-block btn-completar" id="btnCompletar">
+                    <i class="fas fa-check-circle"></i> Completar venta
+                </button>
+
+            </section>
+
+            <!-- ============ COLUMNA DERECHA: RECIBO ============ -->
+            <aside class="recibo-panel">
+                <div class="recibo-vacio" id="reciboVacio">
+                    <i class="fas fa-receipt"></i>
+                    <p>El recibo aparecerá aquí cuando completes la venta.</p>
+                </div>
+
+                <div class="recibo" id="recibo" style="display:none;">
+                    <div class="recibo-header">
+                        <h3>LEDGERA</h3>
+                        <p class="recibo-sub">Recibo de venta</p>
+                        <p class="recibo-fecha" id="reciboFecha"></p>
+                        <p class="recibo-numero" id="reciboNumero"></p>
+                    </div>
+
+                    <div class="recibo-detalle" id="reciboDetalle"></div>
+
+                    <div class="recibo-totales" id="reciboTotales"></div>
+
+                    <div class="recibo-fiado" id="reciboFiado" style="display:none;"></div>
+
+                    <div class="recibo-footer">
+                        <p>¡Gracias por su compra!</p>
+                    </div>
+
+                    <div class="recibo-acciones">
+                        <button type="button" class="btn-secondary btn-block" id="btnNuevaVenta">
+                            <i class="fas fa-plus"></i> Nueva venta
+                        </button>
+                        <button type="button" class="btn-primary btn-block" id="btnImprimir">
+                            <i class="fas fa-print"></i> Imprimir
+                        </button>
+                    </div>
+                </div>
+            </aside>
+
+        </div>
+    </main>
+
+    <script src="js/ventas.js"></script>
+</body>
+</html>
