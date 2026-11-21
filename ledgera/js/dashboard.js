@@ -9,8 +9,8 @@ const PAGINA_ADMIN = '/ledgera/dashboardAdmin.html';
 // Páginas de cada módulo. Mientras una no exista, déjala en null:
 // se muestra "pronto" en vez de un 404. Cuando la crees, pon su ruta.
 const PAGINAS_MODULO = {
-  ventas:        null,   // '/ledgera/ventas.html'
-  inventario:    null,   // '/ledgera/inventario.html'
+  ventas:        '/ledgera/ventas.html',
+  inventario:    '/ledgera/inventario.html',
   fiado:         null,   // '/ledgera/fiado.html'
   egresos:       null,   // '/ledgera/egresos.html'
   exportaciones: null,   // '/ledgera/exportaciones.html'  (solo Dueño)

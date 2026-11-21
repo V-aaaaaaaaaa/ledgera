@@ -5,191 +5,145 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LEDGERA - Ventas</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/ventas.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/ventas.css?v=1">
 </head>
 <body>
 
-    <!-- HEADER -->
     <header class="app-header">
-        <button class="btn-back" id="btnBack" title="Volver al dashboard">
+        <button class="btn-back" id="btnBack" title="Volver al inicio" aria-label="Volver al inicio">
             <i class="fas fa-arrow-left"></i>
         </button>
         <h1 class="header-title">Ventas</h1>
         <div class="header-user">
-            <span id="headerUserName">Admin</span>
+            <span id="headerUserName"></span>
             <i class="fas fa-user-circle"></i>
         </div>
     </header>
 
-    <!-- CONTENIDO -->
+    <div class="aviso-red" id="avisoRed" hidden>
+        <i class="fas fa-wifi"></i> Sin conexión. No se puede registrar hasta que vuelva el internet.
+    </div>
+
     <main class="app-main">
-        <div class="ventas-grid">
 
-            <!-- ============ COLUMNA IZQUIERDA: FORMULARIO ============ -->
-            <section class="venta-panel">
+        <!-- ================= PANTALLA DE VENTA ================= -->
+        <section id="pantallaVenta">
 
-                <h2 class="panel-title">
-                    <i class="fas fa-cash-register"></i> Nueva venta
-                </h2>
+            <!-- PASO 1 -->
+            <article class="paso">
+                <h2><span class="num">1</span> Producto y calidad</h2>
 
-                <!-- PRODUCTO -->
-                <div class="form-block">
-                    <label>Producto *</label>
-                    <div class="producto-selector" id="productoSelector">
-                        <div class="producto-display" id="productoDisplay">
-                            <span class="placeholder">Haz clic para seleccionar un producto</span>
-                            <i class="fas fa-chevron-down"></i>
+                <input type="search" id="buscarProducto" class="campo" placeholder="Buscar producto" aria-label="Buscar producto" autocomplete="off">
+                <div class="fichas" id="listaProductos"></div>
+
+                <div id="bloqueCalidades" hidden>
+                    <p class="sub">Calidad de <strong id="nombreProducto"></strong></p>
+                    <div class="calidades" id="listaCalidades"></div>
+                </div>
+            </article>
+
+            <!-- PASO 2 -->
+            <article class="paso">
+                <h2><span class="num">2</span> Cantidad y precio</h2>
+
+                <label class="etiqueta" for="cantidad">Cantidad</label>
+                <div class="cantidad-control">
+                    <button type="button" class="btn-qty" id="btnMenos" aria-label="Menos"><i class="fas fa-minus"></i></button>
+                    <input type="number" id="cantidad" value="1" min="1" inputmode="numeric">
+                    <button type="button" class="btn-qty" id="btnMas" aria-label="Más"><i class="fas fa-plus"></i></button>
+                </div>
+                <p class="nota" id="notaStock"></p>
+
+                <label class="etiqueta" for="precio">Precio por unidad (puedes cambiarlo si negocian)</label>
+                <input type="number" id="precio" class="campo" min="0" step="100" inputmode="numeric" placeholder="0">
+
+                <div class="total-grande">
+                    <span>Total</span>
+                    <strong id="totalVenta">$0</strong>
+                </div>
+            </article>
+
+            <!-- PASO 3 -->
+            <article class="paso">
+                <h2><span class="num">3</span> Forma de pago</h2>
+
+                <div class="pagos" id="listaPagos">
+                    <button type="button" class="pago" data-pago="Efectivo"><i class="fas fa-money-bill-wave"></i> Efectivo</button>
+                    <button type="button" class="pago" data-pago="Nequi"><i class="fas fa-mobile-screen"></i> Nequi</button>
+                    <button type="button" class="pago" data-pago="Daviplata"><i class="fas fa-mobile-screen"></i> Daviplata</button>
+                    <button type="button" class="pago" data-pago="Bre-B"><i class="fas fa-mobile-screen"></i> Bre-B</button>
+                    <button type="button" class="pago" data-pago="Fiado"><i class="fas fa-handshake"></i> Fiado</button>
+                    <button type="button" class="pago" data-pago="Mixto"><i class="fas fa-shuffle"></i> Mixto</button>
+                </div>
+
+                <!-- Mixto -->
+                <div class="bloque-extra" id="bloqueMixto" hidden>
+                    <label class="etiqueta" for="montoEfectivo">¿Cuánto paga en efectivo?</label>
+                    <input type="number" id="montoEfectivo" class="campo" min="0" step="100" inputmode="numeric" placeholder="0">
+                    <p class="nota">Queda en fiado: <strong id="restoFiado">$0</strong></p>
+                </div>
+
+                <!-- Cliente (fiado y mixto) -->
+                <div class="bloque-extra fiado" id="bloqueCliente" hidden>
+                    <h3 class="sub-titulo"><i class="fas fa-user"></i> Cliente del fiado</h3>
+
+                    <div class="cliente-elegido" id="clienteElegido" hidden>
+                        <div>
+                            <strong id="clienteNombre"></strong>
+                            <span id="clienteDetalle"></span>
                         </div>
-                        <div class="producto-dropdown" id="productoDropdown">
-                            <div class="dropdown-search">
-                                <i class="fas fa-search"></i>
-                                <input type="text" id="productoSearch" placeholder="Buscar producto..." />
-                            </div>
-                            <div class="dropdown-list" id="productoList">
-                                <!-- Productos generados por JS -->
-                            </div>
-                        </div>
+                        <button type="button" class="link-sec" id="btnCambiarCliente">Cambiar</button>
                     </div>
+
+                    <div id="clienteBuscar">
+                        <label class="etiqueta" for="buscarCliente">Buscar por nombre o teléfono</label>
+                        <input type="search" id="buscarCliente" class="campo" autocomplete="off" placeholder="Escribe al menos 2 letras">
+                        <div class="lista-clientes" id="resultadosCliente"></div>
+                        <button type="button" class="link-sec" id="btnNuevoCliente">No está en la lista: crear cliente nuevo</button>
+                    </div>
+
+                    <div id="clienteNuevo" hidden>
+                        <label class="etiqueta" for="nuevoNombre">Nombre completo</label>
+                        <input type="text" id="nuevoNombre" class="campo" autocomplete="off">
+                        <label class="etiqueta" for="nuevoTelefono">Teléfono</label>
+                        <input type="tel" id="nuevoTelefono" class="campo" inputmode="numeric" autocomplete="off">
+                        <label class="check">
+                            <input type="checkbox" id="nuevoConsentimiento">
+                            <span>El cliente autoriza guardar sus datos (Ley 1581 de 2012).</span>
+                        </label>
+                        <button type="button" class="link-sec" id="btnCancelarNuevo">Cancelar y buscar en la lista</button>
+                    </div>
+
+                    <p class="nota" id="notaVencimiento"></p>
                 </div>
 
-                <!-- CANTIDAD + PRECIO SUGERIDO -->
-                <div class="form-row-2">
-                    <div class="form-block">
-                        <label>Cantidad *</label>
-                        <div class="cantidad-control">
-                            <button type="button" class="btn-qty" id="btnQtyMinus">
-                                <i class="fas fa-minus"></i>
-                            </button>
-                            <input type="number" id="ventaCantidad" value="1" min="1" />
-                            <button type="button" class="btn-qty" id="btnQtyPlus">
-                                <i class="fas fa-plus"></i>
-                            </button>
-                        </div>
-                        <small class="hint" id="stockHint"></small>
-                    </div>
-
-                    <div class="form-block">
-                        <label>Precio sugerido</label>
-                        <input type="number" id="ventaPrecioSugerido" readonly />
-                    </div>
+                <!-- Canal -->
+                <p class="etiqueta">Canal de venta</p>
+                <div class="canal" id="listaCanal">
+                    <button type="button" class="canal-op activo" data-canal="Mostrador">Mostrador</button>
+                    <button type="button" class="canal-op" data-canal="Domicilio">Domicilio</button>
                 </div>
+            </article>
+        </section>
 
-                <div class="form-block">
-                    <label>Precio de venta (modificable) *</label>
-                    <input type="number" id="ventaPrecio" placeholder="0" min="0" step="100" />
-                    <small class="hint">Puedes ajustar el precio final.</small>
-                </div>
-
-                <!-- MÉTODO DE PAGO -->
-                <div class="form-block">
-                    <label>Método de pago *</label>
-                    <select id="metodoPago" class="select">
-                        <option value="">-- Selecciona --</option>
-                        <option value="efectivo">Efectivo</option>
-                        <option value="transferencia">Transferencia</option>
-                        <option value="credito">Crédito (Fiado)</option>
-                        <option value="mixto">Mixto</option>
-                    </select>
-                </div>
-
-                <!-- BLOQUE FIADO (oculto por defecto) -->
-                <div class="fiado-block" id="fiadoBlock" style="display:none;">
-                    <h3 class="fiado-title"><i class="fas fa-hand-holding-usd"></i> Datos del fiado</h3>
-
-                    <div class="form-row-2">
-                        <div class="form-block">
-                            <label>Nombre *</label>
-                            <input type="text" id="fiadoNombre" placeholder="Nombre del cliente" />
-                        </div>
-                        <div class="form-block">
-                            <label>Teléfono *</label>
-                            <input type="tel" id="fiadoTelefono" placeholder="Teléfono" />
-                        </div>
-                    </div>
-
-                    <div class="form-row-2">
-                        <div class="form-block">
-                            <label>Abono *</label>
-                            <input type="number" id="fiadoAbono" value="0" min="0" step="100" />
-                        </div>
-                        <div class="form-block">
-                            <label>Fecha de vencimiento *</label>
-                            <input type="date" id="fiadoVencimiento" />
-                        </div>
-                    </div>
-
-                    <div class="form-block">
-                        <label>Saldo</label>
-                        <input type="number" id="fiadoSaldo" readonly />
-                        <small class="hint">Saldo = total venta − abono.</small>
-                    </div>
-
-                    <button type="button" class="btn-secondary btn-block" id="btnGuardarFiado">
-                        <i class="fas fa-save"></i> Guardar fiado
-                    </button>
-                </div>
-
-                <!-- RESUMEN -->
-                <div class="resumen-venta">
-                    <div class="resumen-row">
-                        <span>Subtotal:</span>
-                        <strong id="resumenSubtotal">$0</strong>
-                    </div>
-                    <div class="resumen-row" id="resumenDeudaRow" style="display:none;">
-                        <span>Deuda:</span>
-                        <strong id="resumenDeuda" class="deuda-valor">$0</strong>
-                    </div>
-                    <div class="resumen-row total">
-                        <span>Total:</span>
-                        <strong id="resumenTotal">$0</strong>
-                    </div>
-                </div>
-
-                <button type="button" class="btn-primary btn-block btn-completar" id="btnCompletar">
-                    <i class="fas fa-check-circle"></i> Completar venta
-                </button>
-
-            </section>
-
-            <!-- ============ COLUMNA DERECHA: RECIBO ============ -->
-            <aside class="recibo-panel">
-                <div class="recibo-vacio" id="reciboVacio">
-                    <i class="fas fa-receipt"></i>
-                    <p>El recibo aparecerá aquí cuando completes la venta.</p>
-                </div>
-
-                <div class="recibo" id="recibo" style="display:none;">
-                    <div class="recibo-header">
-                        <h3>LEDGERA</h3>
-                        <p class="recibo-sub">Recibo de venta</p>
-                        <p class="recibo-fecha" id="reciboFecha"></p>
-                        <p class="recibo-numero" id="reciboNumero"></p>
-                    </div>
-
-                    <div class="recibo-detalle" id="reciboDetalle"></div>
-
-                    <div class="recibo-totales" id="reciboTotales"></div>
-
-                    <div class="recibo-fiado" id="reciboFiado" style="display:none;"></div>
-
-                    <div class="recibo-footer">
-                        <p>¡Gracias por su compra!</p>
-                    </div>
-
-                    <div class="recibo-acciones">
-                        <button type="button" class="btn-secondary btn-block" id="btnNuevaVenta">
-                            <i class="fas fa-plus"></i> Nueva venta
-                        </button>
-                        <button type="button" class="btn-primary btn-block" id="btnImprimir">
-                            <i class="fas fa-print"></i> Imprimir
-                        </button>
-                    </div>
-                </div>
-            </aside>
-
-        </div>
+        <!-- ================= PANTALLA DE ÉXITO ================= -->
+        <section id="pantallaExito" class="exito" hidden>
+            <div class="exito-icono"><i class="fas fa-circle-check"></i></div>
+            <h2>¡Venta registrada!</h2>
+            <div class="exito-detalle" id="exitoDetalle"></div>
+            <p class="msg aviso" id="exitoAdvertencia" hidden></p>
+            <button type="button" class="btn-cobrar" id="btnNuevaVenta"><i class="fas fa-plus"></i> Nueva venta</button>
+            <button type="button" class="link-sec" id="btnInicio">Volver al inicio</button>
+        </section>
     </main>
 
-    <script src="js/ventas.js"></script>
+    <!-- Barra fija de cobro -->
+    <div class="barra-cobro" id="barraCobro">
+        <p class="msg error" id="msgForm" role="alert" hidden></p>
+        <button type="button" class="btn-cobrar" id="btnRegistrar">Registrar venta</button>
+    </div>
+
+    <script src="js/ventas.js?v=1"></script>
 </body>
 </html>
