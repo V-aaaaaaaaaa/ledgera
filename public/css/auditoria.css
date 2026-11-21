@@ -1,0 +1,295 @@
+/* Hereda todos los estilos de usuarios (encabezado, tabla, vacío) */
+@import url('usuarios.css');
+
+.auditoria-nota {
+    margin: 0 0 16px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--texto-suave);
+}
+
+/* ==================== FILTROS ==================== */
+.filtros {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+    margin-bottom: 18px;
+}
+
+.filtros label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--acento-oscuro);
+}
+
+.filtros input,
+.filtros select {
+    height: 46px;
+    min-width: 160px;
+    padding: 0 12px;
+    border: 2px solid var(--borde);
+    border-radius: 10px;
+    background: var(--suave);
+    font: 600 1rem 'Montserrat', sans-serif;
+    color: var(--acento-oscuro);
+}
+
+.filtros input:focus,
+.filtros select:focus {
+    outline: none;
+    border-color: var(--acento);
+}
+
+.filtros-botones {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-filtro {
+    min-height: 46px;
+    padding: 0 18px;
+    border: 2px solid var(--acento);
+    border-radius: 10px;
+    background: var(--acento);
+    color: #fff;
+    font: 800 0.95rem 'Montserrat', sans-serif;
+    cursor: pointer;
+}
+
+.btn-filtro.claro {
+    background: #fff;
+    color: var(--acento);
+}
+
+.btn-filtro:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* ==================== TABLA Y PAGINACIÓN ==================== */
+.etiqueta-accion {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 10px;
+    background: var(--claro);
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: var(--acento-oscuro);
+    white-space: nowrap;
+}
+
+.etiqueta-accion.alerta {
+    background: #fdecea;
+    color: #c0392b;
+}
+
+.paginacion {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-top: 18px;
+    font-weight: 700;
+    color: var(--acento-oscuro);
+}
+
+/* ==================== PESTAÑAS ==================== */
+.tabs {
+    position: sticky;
+    top: 0;
+    z-index: 15;
+    display: flex;
+    background: #fff;
+    border-bottom: 3px solid var(--acento-oscuro);
+    box-shadow: 0 4px 12px rgba(0, 30, 0, 0.08);
+}
+
+.tab {
+    flex: 1;
+    min-height: 56px;
+    padding: 0 8px;
+    border: 0;
+    background: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font: 800 0.95rem 'Montserrat', sans-serif;
+    color: var(--texto-suave);
+}
+
+.tab.activo {
+    background: var(--acento-oscuro);
+    color: #fff;
+}
+
+.contador {
+    min-width: 24px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: #c0392b;
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 800;
+    text-align: center;
+}
+
+/* ==================== INCIDENCIAS ==================== */
+.resumen-inc {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.resumen-inc .dato {
+    padding: 10px 16px;
+    border-radius: 12px;
+    background: #fff;
+    border-left: 5px solid var(--acento);
+    box-shadow: 0 3px 10px rgba(0, 30, 0, 0.07);
+    font-weight: 700;
+    color: var(--texto-suave);
+}
+
+.resumen-inc .dato strong {
+    display: block;
+    font-size: 1.5rem;
+    color: var(--acento);
+    line-height: 1.1;
+}
+
+.inc-mensaje {
+    margin: 0 0 12px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-weight: 700;
+    background: var(--claro);
+    color: var(--acento-oscuro);
+}
+
+.inc-mensaje.error {
+    background: #fdecea;
+    color: #c0392b;
+}
+
+.inc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 14px;
+}
+
+.inc {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px;
+    border-radius: 14px;
+    background: #fff;
+    border-left: 6px solid var(--acento);
+    box-shadow: 0 4px 14px rgba(0, 30, 0, 0.08);
+}
+
+.inc.alto { border-left-color: #c0392b; }
+.inc.medio { border-left-color: #e6a817; }
+.inc.bajo { border-left-color: #2e9b57; }
+
+.inc-cab {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.inc-num {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--acento-oscuro);
+}
+
+.inc-badges {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
+.b-inc {
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.b-inc.i-Alto { background: #fdecea; color: #c0392b; }
+.b-inc.i-Medio { background: #fff8e8; color: #8a6a00; }
+.b-inc.i-Bajo { background: #e6f5ec; color: #1f7a45; }
+.b-inc.e-Abierta { background: #fdecea; color: #c0392b; }
+.b-inc.e-En { background: #fff8e8; color: #8a6a00; }
+.b-inc.e-Resuelta { background: #e6f5ec; color: #1f7a45; }
+
+.inc-meta {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.7;
+    color: var(--texto-suave);
+}
+
+.inc-meta i {
+    width: 16px;
+    text-align: center;
+    color: var(--acento);
+}
+
+.inc-desc {
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: var(--suave);
+    font-weight: 600;
+    line-height: 1.5;
+    color: var(--acento-oscuro);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.inc-acciones {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: auto;
+}
+
+.inc-acciones label {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--acento-oscuro);
+}
+
+.inc-acciones select {
+    height: 44px;
+    padding: 0 8px;
+    border: 2px solid var(--borde);
+    border-radius: 10px;
+    background: var(--suave);
+    font: 700 0.95rem 'Montserrat', sans-serif;
+    color: var(--acento-oscuro);
+}
+
+.inc-acciones .btn-guardar-inc {
+    grid-column: 1 / -1;
+}
+
+@media (max-width: 420px) {
+    .inc-grid { grid-template-columns: 1fr; }
+}

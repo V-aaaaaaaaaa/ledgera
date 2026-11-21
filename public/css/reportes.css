@@ -1,0 +1,114 @@
+/* Hereda todos los estilos de usuarios (encabezado, tabla, vacío) */
+@import url('usuarios.css');
+
+.reporte-nota {
+    margin: 0 0 16px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--texto-suave);
+}
+
+.btn-actualizar {
+    min-height: 44px;
+    padding: 0 18px;
+    border: 2px solid var(--acento);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--acento);
+    font: 800 0.95rem 'Montserrat', sans-serif;
+    cursor: pointer;
+}
+
+.titulo-seccion {
+    margin: 26px 0 12px;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--acento-oscuro);
+}
+
+/* ==================== INDICADORES ==================== */
+.grid-indicadores {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 14px;
+}
+
+.indicador {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 16px 18px;
+    border-radius: 14px;
+    background: #fff;
+    border-left: 6px solid var(--acento);
+    box-shadow: 0 4px 14px rgba(0, 30, 0, 0.08);
+}
+
+.indicador .numero {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--acento);
+    line-height: 1.1;
+}
+
+.indicador .etiqueta {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--texto-suave);
+}
+
+.indicador.alerta-rojo { border-left-color: #c0392b; }
+.indicador.alerta-rojo .numero { color: #c0392b; }
+.indicador.alerta-ambar { border-left-color: #e6a817; }
+.indicador.alerta-ambar .numero { color: #b07d00; }
+
+/* ==================== GRÁFICA DE BARRAS ==================== */
+.grafica {
+    margin-top: 18px;
+    padding: 16px 18px;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 4px 14px rgba(0, 30, 0, 0.08);
+}
+
+.grafica-titulo {
+    margin: 0 0 12px;
+    font-weight: 800;
+    color: var(--acento-oscuro);
+}
+
+.barras {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    height: 170px;
+}
+
+.columna {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    height: 100%;
+    gap: 4px;
+}
+
+.columna .valor {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: var(--acento-oscuro);
+}
+
+.columna .barra {
+    width: 100%;
+    min-height: 4px;
+    border-radius: 8px 8px 0 0;
+    background: var(--acento);
+}
+
+.columna .dia {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--texto-suave);
+}
