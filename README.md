@@ -1,7 +1,5 @@
-# Ledgera
-
 Sistema web responsive de contabilidad e inventario para vendedores de Corabastos (Bogotá).
-Proyecto formativo SENA · ADSO. Construido con **Laravel 12 (MVC)**, MySQL, Blade, CSS y JavaScript.
+Construido con **Laravel 12 (MVC)**, MySQL, Blade, CSS y JavaScript.
 
 ## Qué incluye hoy
 - Ingreso con usuario y contraseña, cambio de clave y roles: **Administrador**, **Dueño** y **Vendedor**.
