@@ -150,7 +150,11 @@
                     <select id="ownerSelect" class="select" required>
                         <option value="">-- Selecciona un dueño --</option>
                     </select>
-                    <small class="hint">Solo aparecen cuentas de Dueño activas. Quien era Dueño de este puesto pierde el acceso a él.</small>
+                    <small class="hint">
+                        Selecciona un dueño inactivo registrado en este
+                        puesto. El dueño anterior perderá el acceso,
+                        pero conservará su historial.
+                    </small>
                 </div>
 
                 <div class="message-container">

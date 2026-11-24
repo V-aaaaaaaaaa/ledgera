@@ -2,7 +2,11 @@
 // LEDGERA · Administrador · Usuarios
 // Habla con Admin\UsuarioController (rutas /admin/usuarios...).
 // =====================================================
-const RUTA = '/admin/usuarios';
+const ES_ADMIN = window.LEDGERA.usuario?.rol === 'Administrador';
+
+const RUTA = ES_ADMIN
+    ? '/admin/usuarios'
+    : '/gestion/usuarios';
 
 // ==================== ESTADO LOCAL ====================
 let usuarios = [];
@@ -186,6 +190,7 @@ function abrirEditar(u) {
     $('editCedula').value = u.cedula;
     ajustarPuestoSegunRol(u.rol, $('rowEditPuesto'), $('editPuesto'));
     $('editPuesto').value = u.id_puesto || '';
+    $('editPuesto').disabled = true;
     openModal(editModal);
 }
 
@@ -228,8 +233,10 @@ async function toggleActivo(u) {
 }
 
 // ==================== HEADER ====================
-$('btnBack').addEventListener('click', () => { window.location.href = window.LEDGERA.base + '/admin'; });
-if (window.LEDGERA.usuario) $('headerUserName').textContent = window.LEDGERA.usuario.nombre;
+$('btnBack').addEventListener('click', () => {
+    window.location.href = window.LEDGERA.base
+        + (ES_ADMIN ? '/admin' : '/dashboard');
+});
 
 // ==================== INICIAR ====================
 cargarUsuarios();

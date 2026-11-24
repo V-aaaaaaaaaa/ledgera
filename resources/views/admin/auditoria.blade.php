@@ -47,8 +47,10 @@
                 <label>Acción
                     <select id="fAccion"><option value="">Todas</option></select>
                 </label>
-                <label>Persona
-                    <input type="search" id="fBuscar" placeholder="Usuario o nombre" autocomplete="off">
+                <label>Buscar registro
+                    <input type="search" id="fBuscar"
+                        placeholder="Usuario, puesto o detalle"
+                        autocomplete="off">
                 </label>
                 <div class="filtros-botones">
                     <button type="button" class="btn-filtro" id="btnFiltrar"><i class="fas fa-filter"></i> Filtrar</button>

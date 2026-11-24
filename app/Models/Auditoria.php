@@ -62,7 +62,9 @@ class Auditoria extends Model
     public function paraPantalla(): array
     {
         return [
-            'fecha' => $this->fecha,
+            'fecha' => $this->fecha
+            ?->timezone('America/Bogota')
+            ->format('Y-m-d H:i:s'),
             'accion' => $this->accion,
             'texto' => self::ACCIONES[$this->accion] ?? $this->accion,
             'actor' => $this->actor ? "{$this->actor->nombre_completo} ({$this->actor->usuario})" : 'Sistema',

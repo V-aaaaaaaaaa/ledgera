@@ -15,7 +15,11 @@
             <i class="fas fa-arrow-left"></i>
         </button>
 
-        <h1 class="header-title">Usuarios</h1>
+        <h1 class="header-title">
+            {{ auth()->user()->esAdministrador()
+                ? 'Gestión de dueños'
+                : 'Gestión de vendedores' }}
+        </h1>
 
         <div class="header-user">
             <span id="headerUserName">Admin</span>
@@ -91,14 +95,23 @@
                     <select id="newPuesto" required></select>
                 </div>
 
+                
                 <div class="form-row">
-                    <label for="newRol">Rol *</label>
-                    <select id="newRol" required>
-                        <option value="Vendedor">Vendedor</option>
-                        <option value="Dueno">Dueño</option>
-                        <option value="Administrador">Administrador</option>
+                    <label for="newRol">Rol asignado automáticamente</label>
+
+                    <select id="newRol" disabled>
+                        @if(auth()->user()->esAdministrador())
+                            <option value="Dueno" selected>Dueño</option>
+                        @else
+                            <option value="Vendedor" selected>Vendedor</option>
+                        @endif
                     </select>
+
+                    <small class="hint">
+                        El rol se asigna según tus permisos.
+                    </small>
                 </div>
+
 
                 <small class="hint">El sistema genera una clave temporal y te la muestra una sola vez. El usuario deberá cambiarla al primer ingreso.</small>
 
