@@ -16,6 +16,12 @@ class Auditoria extends Model
     protected $primaryKey = 'id_auditoria';
     public $timestamps = false;
 
+    protected $casts = [
+    'valor_anterior' => 'array',
+    'valor_nuevo'    => 'array',
+    'fecha'          => 'datetime',
+];
+
     // Código guardado en la BD => texto que ve el Administrador
     public const ACCIONES = [
         'INGRESO' => 'Inició sesión',
@@ -41,9 +47,11 @@ class Auditoria extends Model
     }
 
     public function afectado(): BelongsTo
-    {
-        return $this->belongsTo(Usuario::class, 'id_afectado', 'id_usuario');
-    }
+{
+    return $this->belongsTo(
+        Usuario::class, 'id_entidad', 'id_usuario'
+    );
+}
 
     public function puesto(): BelongsTo
     {
@@ -58,31 +66,35 @@ class Auditoria extends Model
             'accion' => $this->accion,
             'texto' => self::ACCIONES[$this->accion] ?? $this->accion,
             'actor' => $this->actor ? "{$this->actor->nombre_completo} ({$this->actor->usuario})" : 'Sistema',
-            'afectado' => $this->afectado ? "{$this->afectado->nombre_completo} ({$this->afectado->usuario})" : null,
+            'afectado' => $this->entidad === 'usuarios' && $this->afectado ? "{$this->afectado->nombre_completo} ({$this->afectado->usuario})": null,
             'puesto' => $this->puesto?->nombre_puesto,
-            'detalle' => $this->detalle,
+            'detalle' => $this->motivo,
         ];
     }
 
     // Guarda una acción. Si la usa alguien con sesión, "quién" se toma solo.
     // Nunca debe tumbar la operación principal: si falla, solo se anota en el log.
-    public static function registrar(
-        string $accion,
-        ?int $afectado = null,
-        ?int $puesto = null,
-        ?string $detalle = null,
-        ?int $actor = null
-    ): void {
-        try {
-            (new self())->forceFill([
-                'id_usuario' => $actor ?? Auth::id(),
-                'id_afectado' => $afectado,
-                'id_puesto' => $puesto,
-                'accion' => $accion,
-                'detalle' => $detalle !== null ? mb_substr($detalle, 0, 255) : null,
-            ])->save();
-        } catch (\Throwable $e) {
-            report($e);
-        }
-    }
+    
+public static function registrar(
+    string $accion,
+    ?int $afectado = null,
+    ?int $puesto = null,
+    ?string $detalle = null,
+    ?int $actor = null,
+    ?string $entidad = 'usuarios',
+    ?array $valorAnterior = null,
+    ?array $valorNuevo = null
+): void {
+    (new self())->forceFill([
+        'id_usuario'     => $actor ?? Auth::id(),
+        'id_puesto'      => $puesto,
+        'accion'         => $accion,
+        'entidad'        => $entidad,
+        'id_entidad'     => $afectado,
+        'motivo'         => $detalle,
+        'valor_anterior' => $valorAnterior,
+        'valor_nuevo'    => $valorNuevo,
+    ])->save();
+}
+
 }

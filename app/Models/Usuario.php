@@ -5,10 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 
-/**
- * Cuenta de acceso a Ledgera (tabla `usuarios`).
- * Roles: Administrador, Dueno, Vendedor.
- */
 class Usuario extends Authenticatable
 {
     protected $table = 'usuarios';
@@ -21,14 +17,8 @@ class Usuario extends Authenticatable
     {
         return [
             'debe_cambiar_clave' => 'boolean',
-            'fecha_bloqueo' => 'datetime',
+            'bloqueado_hasta' => 'datetime',
         ];
-    }
-
-    // La clave vive en la columna password_hash (Laravel espera "password")
-    public function getAuthPassword(): string
-    {
-        return (string) $this->password_hash;
     }
 
     public function getAuthPasswordName(): string
@@ -36,7 +26,6 @@ class Usuario extends Authenticatable
         return 'password_hash';
     }
 
-    // La tabla no tiene remember_token y no usamos "recordarme"
     public function getRememberTokenName(): string
     {
         return '';
@@ -44,7 +33,11 @@ class Usuario extends Authenticatable
 
     public function puesto(): BelongsTo
     {
-        return $this->belongsTo(Puesto::class, 'id_puesto', 'id_puesto');
+        return $this->belongsTo(
+            Puesto::class,
+            'id_puesto',
+            'id_puesto'
+        );
     }
 
     public function esAdministrador(): bool
@@ -52,13 +45,14 @@ class Usuario extends Authenticatable
         return $this->rol === 'Administrador';
     }
 
-    // Página a la que va el usuario según su estado y su rol
     public function rutaInicio(): string
     {
         if ($this->debe_cambiar_clave) {
             return route('clave.form');
         }
 
-        return $this->esAdministrador() ? route('admin.dashboard') : route('dashboard');
+        return $this->esAdministrador()
+            ? route('admin.dashboard')
+            : route('dashboard');
     }
 }

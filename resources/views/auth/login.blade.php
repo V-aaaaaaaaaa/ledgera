@@ -8,14 +8,14 @@
 @endpush
 
 @section('contenido')
-    <!-- TÍTULO PRINCIPAL LEDEGERA -->
     <div class="brand-header">
         <h1 class="brand-title">LEDGERA</h1>
     </div>
 
-    <!-- Formulario de Login -->
     <div class="login-wrapper">
-        <form class="form" id="loginForm">
+        <form class="form" id="loginForm" method="POST" action="{{ url('/login') }}">
+            @csrf
+
             <div class="title">
                 Bienvenido(a),<br><span>inicia sesión para continuar</span>
             </div>
@@ -23,9 +23,10 @@
             <input
                 type="text"
                 placeholder="Usuario"
-                name="username"
+                name="usuario"
                 id="loginUsername"
                 class="input"
+                value="{{ old('usuario') }}"
                 autocomplete="username"
                 required
             />
@@ -41,8 +42,9 @@
             />
 
             <div class="message-container">
-                <span class="error-message" id="loginError"></span>
-                <span class="success-message" id="loginSuccess"></span>
+                @if ($errors->any())
+                    <span class="error-message" style="display:block">{{ $errors->first() }}</span>
+                @endif
             </div>
 
             <button type="submit" class="button-confirm">
@@ -51,14 +53,8 @@
 
             <p class="admin-note">
                 <i class="fas fa-lock"></i>
-                ¿No tienes acceso? Contacta al adminsitrador.
+                ¿No tienes acceso? Contacta al administrador.
             </p>
         </form>
     </div>
-
-    
 @endsection
-
-@push('scripts')
-    <script src="{{ asset('js/auth.js') }}?v={{ filemtime(public_path('js/auth.js')) }}"></script>
-@endpush

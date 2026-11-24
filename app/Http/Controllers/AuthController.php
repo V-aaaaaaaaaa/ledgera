@@ -9,16 +9,15 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
-/**
- * Inicio de sesión, cierre de sesión y cambio de clave (RF-001).
- */
 class AuthController extends Controller
 {
     private const MAX_INTENTOS = 3;
     public const MINUTOS_BLOQUEO = 3;
 
+    // Mostrar formulario de inicio de sesión
     public function mostrarLogin(): View|RedirectResponse
     {
         if (Auth::check()) {
@@ -28,151 +27,395 @@ class AuthController extends Controller
         return view('auth.login');
     }
 
-    public function login(Request $request): JsonResponse
+    // Iniciar sesión
+    public function login(Request $request): RedirectResponse
     {
-        $usuario = trim((string) $request->input('usuario'));
-        $password = (string) $request->input('password');
-
-        if ($usuario === '' || $password === '') {
-            return $this->fallo('Escribe tu usuario y tu contraseña.', 400);
-        }
-
-        $generico = 'Usuario o contraseña incorrectos.';
-        $u = Usuario::with('puesto')->where('usuario', $usuario)->first();
-
-        if (! $u) {
-            Hash::make($password); // gasta un tiempo parecido para no revelar qué usuarios existen
-            return $this->fallo($generico, 401);
-        }
-
-        // 1) Bloqueo temporal vigente
-        if ($u->fecha_bloqueo !== null) {
-            $fin = $u->fecha_bloqueo->copy()->addMinutes(self::MINUTOS_BLOQUEO);
-            if (now()->lt($fin)) {
-                $minutos = max(1, (int) ceil(now()->diffInSeconds($fin) / 60));
-                return $this->fallo("Cuenta bloqueada. Intenta de nuevo en {$minutos} min.", 423);
-            }
-            $u->forceFill(['intentos_fallidos' => 0, 'fecha_bloqueo' => null])->save();
-        }
-
-        // 2) Cuenta o puesto inactivo, o sin puesto asignado
-        if ($u->estado !== 'Activo' || ($u->id_puesto !== null && $u->puesto?->estado !== 'Activo')) {
-            return $this->fallo('Tu cuenta no está activa. Habla con tu superior.', 403);
-        }
-        if (! $u->esAdministrador() && $u->id_puesto === null) {
-            return $this->fallo('Tu cuenta no tiene un puesto asignado. Habla con el Administrador.', 403);
-        }
-
-        // 3) Verificar la clave (3 fallos seguidos bloquean 3 minutos)
-        if (! $this->claveCorrecta($password, $u->password_hash)) {
-            $intentos = $u->intentos_fallidos + 1;
-            if ($intentos >= self::MAX_INTENTOS) {
-                $u->forceFill(['intentos_fallidos' => $intentos, 'fecha_bloqueo' => now()])->save();
-                Auditoria::registrar('CUENTA_BLOQUEADA', (int) $u->id_usuario, null, 'Intentos fallidos seguidos');
-                return $this->fallo('Demasiados intentos. Cuenta bloqueada por ' . self::MINUTOS_BLOQUEO . ' minutos.', 423);
-            }
-            $u->forceFill(['intentos_fallidos' => $intentos])->save();
-            return $this->fallo($generico . ' Te quedan ' . (self::MAX_INTENTOS - $intentos) . ' intentos.', 401);
-        }
-
-        // 4) Éxito
-        $u->forceFill(['intentos_fallidos' => 0, 'fecha_bloqueo' => null])->save();
-        Auth::login($u);
-        $request->session()->regenerate(); // evita fijación de sesión
-        Auditoria::registrar('INGRESO', (int) $u->id_usuario);
-
-        return response()->json([
-            'ok' => true,
-            'cambiar_clave' => (bool) $u->debe_cambiar_clave,
-            'destino' => $u->rutaInicio(),
-            'usuario' => ['nombre' => $u->nombre_completo, 'rol' => $u->rol],
+        $datos = $request->validate([
+            'usuario' => ['required', 'string', 'max:50'],
+            'password' => ['required', 'string', 'max:255'],
+        ], [
+            'usuario.required' => 'Escribe tu usuario.',
+            'password.required' => 'Escribe tu contraseña.',
         ]);
+
+        $resultado = DB::transaction(function () use ($datos) {
+
+            $u = Usuario::with('puesto')
+                ->where('usuario', trim($datos['usuario']))
+                ->lockForUpdate()
+                ->first();
+
+            $generico = 'Usuario o contraseña incorrectos.';
+
+            // Usuario inexistente
+            if (!$u) {
+                Hash::make('credencial-inexistente');
+
+                Auditoria::registrar(
+                    'LOGIN_FALLIDO',
+                    null,
+                    null,
+                    'Usuario inexistente',
+                    null,
+                    null
+                );
+
+                return $generico;
+            }
+
+            // Verificar bloqueo temporal
+            if ($u->bloqueado_hasta !== null) {
+                if (now()->lt($u->bloqueado_hasta)) {
+                    $minutos = max(
+                        1,
+                        (int) ceil(
+                            now()->diffInSeconds(
+                                $u->bloqueado_hasta,
+                                true
+                            ) / 60
+                        )
+                    );
+
+                    return "Cuenta bloqueada. Intenta de nuevo en {$minutos} min.";
+                }
+
+                $u->forceFill([
+                    'intentos_fallidos' => 0,
+                    'bloqueado_hasta' => null,
+                ])->save();
+            }
+
+            // Verificar contraseña
+            if (!$this->claveCorrecta(
+                $datos['password'],
+                $u->password_hash
+            )) {
+                $intentos = $u->intentos_fallidos + 1;
+
+                $u->intentos_fallidos = $intentos;
+
+                if ($intentos >= self::MAX_INTENTOS) {
+                    $u->bloqueado_hasta = now()
+                        ->addMinutes(self::MINUTOS_BLOQUEO);
+
+                    $u->save();
+
+                    Auditoria::registrar(
+                        'CUENTA_BLOQUEADA',
+                        $u->id_usuario,
+                        $u->id_puesto,
+                        'Tres intentos fallidos'
+                    );
+
+                    return 'Demasiados intentos. Cuenta bloqueada por 3 minutos.';
+                }
+
+                $u->save();
+
+                Auditoria::registrar(
+                    'LOGIN_FALLIDO',
+                    $u->id_usuario,
+                    $u->id_puesto,
+                    'Contraseña incorrecta'
+                );
+
+                return $generico;
+            }
+
+            // Verificar estado de la cuenta
+            if ($u->estado !== 'Activo') {
+                Auditoria::registrar(
+                    'LOGIN_RECHAZADO',
+                    $u->id_usuario,
+                    $u->id_puesto,
+                    'Cuenta inactiva'
+                );
+
+                return 'Tu cuenta no está activa.';
+            }
+
+            // Verificar puesto para Dueño y Vendedor
+            if (
+                !$u->esAdministrador()
+                && $u->puesto?->estado !== 'Activo'
+            ) {
+                Auditoria::registrar(
+                    'LOGIN_RECHAZADO',
+                    $u->id_usuario,
+                    $u->id_puesto,
+                    'Puesto inexistente o inactivo'
+                );
+
+                return 'Tu puesto no está activo.';
+            }
+
+            // Reiniciar intentos fallidos
+            $u->forceFill([
+                'intentos_fallidos' => 0,
+                'bloqueado_hasta' => null,
+            ])->save();
+
+            Auditoria::registrar(
+                'INGRESO',
+                $u->id_usuario,
+                $u->id_puesto,
+                null,
+                $u->id_usuario
+            );
+
+            return $u;
+        });
+
+        // Si no se obtuvo un usuario, devolver el error
+        if (!$resultado instanceof Usuario) {
+            return back()
+                ->withErrors(['login' => $resultado])
+                ->onlyInput('usuario');
+        }
+
+        // Crear sesión autenticada
+        Auth::login($resultado);
+
+        $request->session()->regenerate();
+
+        return redirect($resultado->rutaInicio());
     }
 
-    public function logout(Request $request): JsonResponse
+    // Cerrar sesión
+    public function logout(
+        Request $request
+    ): JsonResponse|RedirectResponse
     {
+        $u = $request->user();
+
         Auth::logout();
+
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return response()->json(['ok' => true, 'destino' => route('login')]);
+        if ($u) {
+            Auditoria::registrar(
+                'LOGOUT',
+                $u->id_usuario,
+                $u->id_puesto,
+                null,
+                $u->id_usuario
+            );
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'ok' => true,
+                'destino' => route('login'),
+            ]);
+        }
+
+        return redirect()->route('login');
     }
 
+    // Mostrar formulario de cambio de contraseña
     public function mostrarCambioClave(Request $request): View
     {
         $u = $request->user();
 
         return view('auth.cambiar-clave', [
-            'obligatorio' => (bool) $u->debe_cambiar_clave,
-            'destino' => $u->debe_cambiar_clave ? route('login') : $u->rutaInicio(),
+            'obligatorio' => $u->debe_cambiar_clave,
+            'destino' => $u->debe_cambiar_clave
+                ? route('login')
+                : $u->rutaInicio(),
         ]);
     }
 
+    // Cambiar contraseña
     public function cambiarClave(Request $request): JsonResponse
     {
-        $actual = (string) $request->input('actual');
-        $nueva = (string) $request->input('nueva');
-        $confirmar = (string) $request->input('confirmar');
+        $actual = $request->input('actual');
+        $nueva = $request->input('nueva');
+        $confirmar = $request->input('confirmar');
 
-        if ($actual === '' || $nueva === '' || $confirmar === '') {
-            return $this->fallo('Completa los tres campos.', 400);
+        // Validaciones
+        if (
+            !is_string($actual)
+            || !is_string($nueva)
+            || !is_string($confirmar)
+            || $actual === ''
+            || $nueva === ''
+            || $confirmar === ''
+        ) {
+            return $this->fallo(
+                'Completa los tres campos.',
+                400
+            );
         }
+
         if (mb_strlen($nueva) < 8) {
-            return $this->fallo('La clave nueva es muy corta. Usa mínimo 8 caracteres.', 400);
+            return $this->fallo(
+                'Usa mínimo 8 caracteres.',
+                400
+            );
         }
-        if (mb_strlen($nueva) > 64) {
-            return $this->fallo('La clave nueva es muy larga. Usa máximo 64 caracteres.', 400);
+
+        if (mb_strlen($nueva) > 64 || strlen($nueva) > 72) {
+            return $this->fallo(
+                'La contraseña nueva es demasiado larga.',
+                400
+            );
         }
-        if (! preg_match('/[A-Za-z]/', $nueva) || ! preg_match('/[0-9]/', $nueva)) {
-            return $this->fallo('La clave nueva debe tener al menos una letra y un número.', 400);
+
+        if (
+            !preg_match('/[A-Za-z]/', $nueva)
+            || !preg_match('/[0-9]/', $nueva)
+        ) {
+            return $this->fallo(
+                'La contraseña debe tener una letra y un número.',
+                400
+            );
         }
+
         if ($nueva !== $confirmar) {
-            return $this->fallo('Las claves nuevas no coinciden.', 400);
+            return $this->fallo(
+                'Las contraseñas nuevas no coinciden.',
+                400
+            );
         }
+
         if ($nueva === $actual) {
-            return $this->fallo('La clave nueva debe ser distinta a la actual.', 400);
+            return $this->fallo(
+                'La contraseña nueva debe ser distinta a la actual.',
+                400
+            );
         }
 
-        $u = $request->user();
+        $id = Auth::id();
 
-        // Clave actual incorrecta: mismo límite de 3 intentos que el login
-        if (! $this->claveCorrecta($actual, $u->password_hash)) {
-            $intentos = $u->intentos_fallidos + 1;
-            if ($intentos >= self::MAX_INTENTOS) {
-                $u->forceFill(['intentos_fallidos' => $intentos, 'fecha_bloqueo' => now()])->save();
-                Auditoria::registrar('CUENTA_BLOQUEADA', (int) $u->id_usuario, null, 'Intentos fallidos seguidos');
-                Auth::logout();
-                $request->session()->invalidate();
-                $request->session()->regenerateToken();
+        $resultado = DB::transaction(function () use (
+            $id,
+            $actual,
+            $nueva
+        ) {
+            $u = Usuario::with('puesto')
+                ->lockForUpdate()
+                ->findOrFail($id);
 
-                return response()->json([
+            if (
+                $u->estado !== 'Activo'
+                || (
+                    !$u->esAdministrador()
+                    && $u->puesto?->estado !== 'Activo'
+                )
+            ) {
+                return [
                     'ok' => false,
                     'cerrar' => true,
-                    'mensaje' => 'Demasiados intentos. Cuenta bloqueada por ' . self::MINUTOS_BLOQUEO . ' minutos.',
-                ], 423);
+                    'mensaje' => 'Tu cuenta o puesto está inactivo.',
+                    'codigo' => 403,
+                ];
             }
-            $u->forceFill(['intentos_fallidos' => $intentos])->save();
-            return $this->fallo('La clave actual no es correcta. Te quedan ' . (self::MAX_INTENTOS - $intentos) . ' intentos.', 401);
+
+            // Bloqueo vigente
+            if ($u->bloqueado_hasta !== null) {
+                if (now()->lt($u->bloqueado_hasta)) {
+                    return [
+                        'ok' => false,
+                        'cerrar' => true,
+                        'mensaje' => 'Tu cuenta está bloqueada.',
+                        'codigo' => 423,
+                    ];
+                }
+
+                $u->forceFill([
+                    'intentos_fallidos' => 0,
+                    'bloqueado_hasta' => null,
+                ])->save();
+            }
+
+            // Verificar contraseña actual
+            if (!$this->claveCorrecta(
+                $actual,
+                $u->password_hash
+            )) {
+                $intentos = $u->intentos_fallidos + 1;
+
+                $u->intentos_fallidos = $intentos;
+
+                if ($intentos >= self::MAX_INTENTOS) {
+                    $u->bloqueado_hasta = now()
+                        ->addMinutes(self::MINUTOS_BLOQUEO);
+
+                    $u->save();
+
+                    Auditoria::registrar(
+                        'CUENTA_BLOQUEADA',
+                        $u->id_usuario,
+                        $u->id_puesto,
+                        'Intentos fallidos al cambiar contraseña'
+                    );
+
+                    return [
+                        'ok' => false,
+                        'cerrar' => true,
+                        'mensaje' => 'Cuenta bloqueada por 3 minutos.',
+                        'codigo' => 423,
+                    ];
+                }
+
+                $u->save();
+
+                return [
+                    'ok' => false,
+                    'mensaje' => 'La contraseña actual no es correcta.',
+                    'codigo' => 401,
+                ];
+            }
+
+            // Guardar la nueva contraseña
+            $u->forceFill([
+                'password_hash' => Hash::make($nueva),
+                'debe_cambiar_clave' => false,
+                'intentos_fallidos' => 0,
+                'bloqueado_hasta' => null,
+            ])->save();
+
+            Auditoria::registrar(
+                'CLAVE_CAMBIADA',
+                $u->id_usuario,
+                $u->id_puesto
+            );
+
+            return [
+                'ok' => true,
+                'mensaje' => 'Contraseña cambiada correctamente.',
+                'destino' => $u->rutaInicio(),
+                'codigo' => 200,
+            ];
+        });
+
+        if ($resultado['cerrar'] ?? false) {
+            Auth::logout();
+
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        } elseif ($resultado['ok']) {
+            $request->session()->regenerate();
         }
 
-        $u->forceFill([
-            'password_hash' => Hash::make($nueva),
-            'debe_cambiar_clave' => false,
-            'intentos_fallidos' => 0,
-            'fecha_bloqueo' => null,
-        ])->save();
-        $request->session()->regenerate();
+        $codigo = $resultado['codigo'];
 
-        Auditoria::registrar('CLAVE_CAMBIADA', (int) $u->id_usuario);
+        unset($resultado['codigo']);
 
-        return response()->json(['ok' => true, 'mensaje' => 'Clave cambiada.', 'destino' => $u->rutaInicio()]);
+        return response()->json($resultado, $codigo);
     }
 
-    // Compara la clave escrita con el hash guardado (bcrypt). Si el hash guardado
-    // no es válido (por ejemplo el "hash_de_prueba" del script SQL) simplemente no coincide.
-    private function claveCorrecta(string $plana, ?string $hash): bool
-    {
-        if ($hash === null || $hash === '') {
+    // Comparar contraseña con su hash
+    private function claveCorrecta(
+        string $plana,
+        ?string $hash
+    ): bool {
+        if (
+            $hash === null
+            || $hash === ''
+            || strlen($plana) > 72
+        ) {
             return false;
         }
 
@@ -183,8 +426,14 @@ class AuthController extends Controller
         }
     }
 
-    private function fallo(string $mensaje, int $codigo): JsonResponse
-    {
-        return response()->json(['ok' => false, 'mensaje' => $mensaje], $codigo);
+    // Respuesta JSON para errores
+    private function fallo(
+        string $mensaje,
+        int $codigo
+    ): JsonResponse {
+        return response()->json([
+            'ok' => false,
+            'mensaje' => $mensaje,
+        ], $codigo);
     }
 }
