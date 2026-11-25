@@ -190,7 +190,8 @@ function abrirEditar(u) {
     $('editCedula').value = u.cedula;
     ajustarPuestoSegunRol(u.rol, $('rowEditPuesto'), $('editPuesto'));
     $('editPuesto').value = u.id_puesto || '';
-    $('editPuesto').disabled = true;
+    // Solo el Administrador puede corregir el puesto
+    $('editPuesto').disabled = !ES_ADMIN;
     openModal(editModal);
 }
 
