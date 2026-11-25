@@ -39,6 +39,10 @@ class Auditoria extends Model
         'PUESTO_DUENO_CAMBIADO' => 'Cambió el Dueño de un puesto',
         'INCIDENCIA_REPORTADA' => 'Reportó un problema',
         'INCIDENCIA_ACTUALIZADA' => 'Actualizó una incidencia',
+        'PROVEEDOR_CREADO' => 'Registró un proveedor',
+        'PROVEEDOR_EDITADO' => 'Editó un proveedor',
+        'PROVEEDOR_ACTIVADO' => 'Activó un proveedor',
+        'PROVEEDOR_DESACTIVADO' => 'Desactivó un proveedor',
     ];
 
     public function actor(): BelongsTo

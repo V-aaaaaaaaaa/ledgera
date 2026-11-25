@@ -11,7 +11,8 @@ const PAGINAS_MODULO = {
   fiado:         null,   // '/fiado'
   egresos:       null,   // '/egresos'
   exportaciones: null,   // '/exportaciones'  (solo Dueño)
-  equipo:        null,   // '/equipo'  (solo Dueño, desde el menú del perfil)
+  equipo:        '/gestion/usuarios',   // solo Dueño, desde el menú del perfil
+  proveedores:   '/proveedores',        // solo Dueño, desde el menú del perfil
   cierre:        null    // '/cierre-caja'
 };
 
@@ -58,7 +59,7 @@ function avisar(texto) {
 
 function irAModulo(modulo) {
   const destino = PAGINAS_MODULO[modulo];
-  if (destino) window.location.href = destino;
+  if (destino) window.location.href = window.LEDGERA.base + destino;
   else avisar("Este módulo estará disponible pronto.");
 }
 
