@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\UsuarioController;
 use App\Http\Controllers\CajaController;
+use App\Http\Controllers\CierreCajaController;
 use App\Http\Controllers\IncidenciaController;
 use App\Http\Controllers\PanelController;
 use App\Http\Controllers\ProveedorController;
@@ -22,6 +23,15 @@ Route::prefix('caja')->name('caja.')->group(function () {
     Route::get('/estado', [CajaController::class, 'estado'])->name('estado');
     Route::post('/abrir', [CajaController::class, 'abrir'])->name('abrir');
     Route::put('/apertura', [CajaController::class, 'corregir'])->name('corregir');
+});
+
+// Cierre de caja (RF-015): Dueño y Vendedor. El límite de descuadre solo lo cambia el Dueño.
+Route::prefix('cierre-caja')->name('cierre.')->group(function () {
+    Route::get('/', [CierreCajaController::class, 'index'])->name('index');
+    Route::get('/resumen', [CierreCajaController::class, 'resumen'])->name('resumen');
+    Route::post('/', [CierreCajaController::class, 'cerrar'])->name('cerrar');
+    Route::put('/umbral', [CierreCajaController::class, 'cambiarUmbral'])
+        ->middleware('rol:Dueno')->name('umbral');
 });
 
 // Proveedores: el Vendedor solo consulta la lista (la usa en facturas de compra)

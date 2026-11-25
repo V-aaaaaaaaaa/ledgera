@@ -45,6 +45,8 @@ class Auditoria extends Model
         'PROVEEDOR_DESACTIVADO' => 'Desactivó un proveedor',
         'CAJA_ABIERTA' => 'Abrió la caja',
         'CAJA_MONTO_CORREGIDO' => 'Corrigió el efectivo inicial de la caja',
+        'CAJA_CERRADA' => 'Cerró la caja',
+        'UMBRAL_CAMBIADO' => 'Cambió el límite de descuadre de caja',
     ];
 
     public function actor(): BelongsTo

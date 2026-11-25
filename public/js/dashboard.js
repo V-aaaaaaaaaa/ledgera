@@ -13,7 +13,7 @@ const PAGINAS_MODULO = {
   exportaciones: null,   // '/exportaciones'  (solo Dueño)
   equipo:        '/gestion/usuarios',   // solo Dueño, desde el menú del perfil
   proveedores:   '/proveedores',        // solo Dueño, desde el menú del perfil
-  cierre:        null    // '/cierre-caja'
+  cierre:        '/cierre-caja'
 };
 
 let sesion = null;
