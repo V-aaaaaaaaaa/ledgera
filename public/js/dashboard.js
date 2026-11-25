@@ -136,8 +136,7 @@ function initCards() {
   document.querySelectorAll(".card").forEach((card) => {
     card.addEventListener("click", () => irAModulo(card.dataset.modulo));
   });
-  const btnCierre = document.getElementById("btnCierre");
-  if (btnCierre) btnCierre.addEventListener("click", () => irAModulo("cierre"));
+  // El botón de caja (abrir / cierre) lo maneja js/caja.js según el estado de la caja
 }
 
 // -----------------------------------------------------

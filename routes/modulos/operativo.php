@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\UsuarioController;
+use App\Http\Controllers\CajaController;
 use App\Http\Controllers\IncidenciaController;
 use App\Http\Controllers\PanelController;
 use App\Http\Controllers\ProveedorController;
@@ -15,6 +16,13 @@ Route::get('/dashboard', [
 Route::post('/incidencias', [
     IncidenciaController::class, 'store'
 ])->middleware('throttle:10,1')->name('incidencias.store');
+
+// Caja (RF-020): Dueño y Vendedor
+Route::prefix('caja')->name('caja.')->group(function () {
+    Route::get('/estado', [CajaController::class, 'estado'])->name('estado');
+    Route::post('/abrir', [CajaController::class, 'abrir'])->name('abrir');
+    Route::put('/apertura', [CajaController::class, 'corregir'])->name('corregir');
+});
 
 // Proveedores: el Vendedor solo consulta la lista (la usa en facturas de compra)
 Route::get('/proveedores/datos', [

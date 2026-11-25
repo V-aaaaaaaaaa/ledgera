@@ -53,6 +53,9 @@
   <main class="main">
     <h1 class="saludo" id="saludo"></h1>
 
+    <!-- Estado de la caja (lo llena js/caja.js) -->
+    <div class="caja-estado" id="cajaEstado" hidden></div>
+
     <!-- Cards -->
     <section class="cards-container">
       <div class="card" data-modulo="ventas">
@@ -95,7 +98,7 @@
     <section class="cierre-wrapper">
       <button class="btn-cierre" id="btnCierre">
         <svg viewBox="0 0 640 512" aria-hidden="true"><path d="M64 64C28.7 64 0 92.7 0 128V384c0 35.3 28.7 64 64 64H576c35.3 0 64-28.7 64-64V128c0-35.3-28.7-64-64-64H64zm0 64H576V384H64V128zm96 96c0-17.7 14.3-32 32-32h64c17.7 0 32 14.3 32 32s-14.3 32-32 32H192c-17.7 0-32-14.3-32-32zm160 0c0-17.7 14.3-32 32-32h64c17.7 0 32 14.3 32 32s-14.3 32-32 32H352c-17.7 0-32-14.3-32-32z"/></svg>
-        Cierre de caja
+        <span id="btnCajaTexto">Cargando caja…</span>
       </button>
     </section>
   </main>
@@ -110,6 +113,27 @@
   </footer>
 
   
+
+  <!-- ============ VENTANA: ABRIR CAJA / CORREGIR MONTO (RF-020) ============ -->
+  <div class="modal-caja" id="modalCaja" hidden>
+    <div class="modal-caja__caja" role="dialog" aria-modal="true" aria-labelledby="cajaTitulo">
+      <h2 id="cajaTitulo">Abrir caja</h2>
+      <p class="modal-caja__ayuda" id="cajaAyuda">¿Con cuánto efectivo empiezas?</p>
+
+      <div class="modal-caja__monto">
+        <span>$</span>
+        <input type="text" id="cajaMonto" inputmode="numeric" autocomplete="off" aria-label="Efectivo inicial">
+      </div>
+      <small class="modal-caja__nota" id="cajaNota"></small>
+
+      <p class="modal-caja__msg" id="cajaMsg" role="alert" hidden></p>
+
+      <div class="modal-caja__botones">
+        <button type="button" class="modal-caja__cancelar" id="cajaCancelar">Cancelar</button>
+        <button type="button" class="modal-caja__confirmar" id="cajaConfirmar">Confirmar</button>
+      </div>
+    </div>
+  </div>
 
   <!-- ============ VENTANA: REPORTAR UN PROBLEMA ============ -->
   <div class="modal-reporte" id="modalReporte" hidden>
@@ -148,6 +172,11 @@
 
 @push('scripts')
     <script src="{{ asset('js/dashboard.js') }}?v={{ filemtime(public_path('js/dashboard.js')) }}"></script>
+    <script src="{{ asset('js/caja.js') }}?v={{ filemtime(public_path('js/caja.js')) }}"></script>
+@endpush
+
+@push('estilos')
+    <link rel="stylesheet" href="{{ asset('css/caja.css') }}?v={{ filemtime(public_path('css/caja.css')) }}">
 @endpush
 
 @push('estilos')

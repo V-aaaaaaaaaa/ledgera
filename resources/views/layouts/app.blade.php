@@ -22,6 +22,7 @@
     };
 </script>
 <script src="{{ asset('js/api.js') }}?v={{ filemtime(public_path('js/api.js')) }}"></script>
+<script src="{{ asset('js/filtros.js') }}?v={{ filemtime(public_path('js/filtros.js')) }}"></script>
 @stack('scripts')
 </body>
 </html>

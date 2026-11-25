@@ -43,6 +43,8 @@ class Auditoria extends Model
         'PROVEEDOR_EDITADO' => 'Editó un proveedor',
         'PROVEEDOR_ACTIVADO' => 'Activó un proveedor',
         'PROVEEDOR_DESACTIVADO' => 'Desactivó un proveedor',
+        'CAJA_ABIERTA' => 'Abrió la caja',
+        'CAJA_MONTO_CORREGIDO' => 'Corrigió el efectivo inicial de la caja',
     ];
 
     public function actor(): BelongsTo

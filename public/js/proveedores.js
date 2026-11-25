@@ -129,11 +129,6 @@ form.addEventListener('submit', async (e) => {
     setTimeout(cerrar, 600);
 });
 
-// Solo números en el teléfono
-$('provTelefono').addEventListener('input', (e) => {
-    e.target.value = e.target.value.replace(/\D/g, '').slice(0, 10);
-});
-
 // ==================== ACTIVAR / DESACTIVAR ====================
 async function cambiarEstado(p) {
     const activar = p.estado !== 'Activo';

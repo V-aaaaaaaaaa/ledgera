@@ -420,7 +420,7 @@ class UsuarioController extends Controller
                     'required',
                     'regex:/^[A-Za-z0-9._-]{3,50}$/'
                 ],
-                'nombre' => ['required', 'string', 'max:150'],
+                'nombre' => ['required', 'string', 'max:150', 'regex:/^[\pL ]+$/u'],
                 'cedula' => [
                     'required',
                     'regex:/^[0-9]{5,15}$/'
@@ -432,6 +432,7 @@ class UsuarioController extends Controller
                 'usuario.required' => 'Escribe el usuario.',
                 'usuario.regex' => 'Usuario inválido: usa entre 3 y 50 caracteres sin espacios.',
                 'nombre.required' => 'Escribe el nombre completo.',
+                'nombre.regex' => 'El nombre solo puede tener letras y espacios.',
                 'cedula.required' => 'Escribe la identificación.',
                 'cedula.regex' => 'La identificación debe contener de 5 a 15 números.',
             ]

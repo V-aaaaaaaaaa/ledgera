@@ -177,12 +177,14 @@ class ProveedorController extends Controller
     private function validar(Request $request): array
     {
         $validador = Validator::make($request->all(), [
-            'nombre' => ['required', 'string', 'max:150'],
+            'nombre' => ['required', 'string', 'max:150', 'regex:/^[\pL\pN .,&#-]+$/u'],
             'telefono' => ['nullable', 'regex:/^[0-9]{7,10}$/'],
-            'contacto' => ['nullable', 'string', 'max:100'],
+            'contacto' => ['nullable', 'string', 'max:100', 'regex:/^[\pL ]+$/u'],
         ], [
             'nombre.required' => 'Escribe el nombre del proveedor.',
             'nombre.max' => 'El nombre es muy largo (máximo 150 letras).',
+            'nombre.regex' => 'El nombre solo puede tener letras, números, espacios y . , - & #',
+            'contacto.regex' => 'El contacto solo puede tener letras y espacios.',
             'telefono.regex' => 'El teléfono debe tener solo números (7 a 10 dígitos).',
             'contacto.max' => 'El contacto es muy largo (máximo 100 letras).',
         ]);

@@ -70,12 +70,12 @@
             <form class="modal-form" id="createPuestoForm">
                 <div class="form-row">
                     <label for="newNombre">Nombre del puesto *</label>
-                    <input type="text" id="newNombre" placeholder="ej: Puesto Central" required />
+                    <input type="text" id="newNombre" placeholder="ej: Puesto Central" data-filtro="texto" maxlength="100" required />
                 </div>
 
                 <div class="form-row">
                     <label for="newBodega">Bodega *</label>
-                    <input type="text" id="newBodega" placeholder="ej: Bodega Norte" required />
+                    <input type="text" id="newBodega" placeholder="ej: Bodega Norte" data-filtro="texto" maxlength="100" required />
                 </div>
 
                 <div class="message-container">
@@ -106,12 +106,12 @@
 
                 <div class="form-row">
                     <label for="editNombre">Nombre del puesto *</label>
-                    <input type="text" id="editNombre" required />
+                    <input type="text" id="editNombre" data-filtro="texto" maxlength="100" required />
                 </div>
 
                 <div class="form-row">
                     <label for="editBodega">Bodega *</label>
-                    <input type="text" id="editBodega" required />
+                    <input type="text" id="editBodega" data-filtro="texto" maxlength="100" required />
                 </div>
 
                 <div class="message-container">

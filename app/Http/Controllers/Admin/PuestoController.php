@@ -267,14 +267,16 @@ class PuestoController extends Controller
         $validador = Validator::make(
             $request->all(),
             [
-                'nombre' => ['required', 'string', 'max:100'],
-                'bodega' => ['required', 'string', 'max:100'],
+                'nombre' => ['required', 'string', 'max:100', 'regex:/^[\pL\pN .,&#-]+$/u'],
+                'bodega' => ['required', 'string', 'max:100', 'regex:/^[\pL\pN .,&#-]+$/u'],
             ],
             [
                 'nombre.required' => 'Escribe el nombre del puesto.',
                 'bodega.required' => 'Escribe la bodega.',
                 'nombre.max' => 'Máximo 100 caracteres.',
                 'bodega.max' => 'Máximo 100 caracteres.',
+                'nombre.regex' => 'El nombre solo puede tener letras, números, espacios y . , - & #',
+                'bodega.regex' => 'La bodega solo puede tener letras, números, espacios y . , - & #',
             ]
         );
 

@@ -1,0 +1,138 @@
+/* =====================================================
+   LEDGERA · Apertura de caja (dashboard)
+   Usa el color del botón de caja (índigo, ver tema.css).
+   ===================================================== */
+
+/* ---------- Franja de estado ---------- */
+.caja-estado {
+    --h: 150; --s: 60%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 6px 8px;
+    max-width: 720px;
+    margin: -36px auto 36px;
+    padding: 12px 18px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.92);
+    color: #1C1C1C;
+    font-size: 16px;
+    text-align: center;
+}
+
+.caja-estado[hidden] { display: none; }
+
+.caja-estado__punto {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #27AE60;            /* verde = abierta */
+    flex-shrink: 0;
+}
+
+.caja-estado.cerrada .caja-estado__punto { background: #C0392B; }   /* rojo = cerrada */
+
+.caja-estado__corregir {
+    min-height: 44px;               /* RNF-002: botón táctil de al menos 44 px */
+    padding: 0 14px;
+    border: 2px solid #C8D0E0;
+    border-radius: 10px;
+    background: #fff;
+    color: #2C3570;
+    font: 600 15px inherit;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.btn-cierre:disabled { opacity: .6; cursor: wait; transform: none; }
+
+/* ---------- Ventana ---------- */
+.modal-caja {
+    --h: 236; --s: 48%;
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(10, 12, 40, 0.6);
+}
+
+.modal-caja[hidden] { display: none; }
+
+.modal-caja__caja {
+    width: 100%;
+    max-width: 420px;
+    padding: 24px;
+    border-radius: 18px;
+    background: #fff;
+    color: hsl(var(--h), 55%, 15%);
+    font-family: inherit;
+    text-align: center;
+}
+
+.modal-caja__caja h2 { margin: 0 0 6px; font-size: 1.5rem; }
+
+.modal-caja__ayuda { margin: 0 0 18px; font-size: 1.05rem; color: hsl(var(--h), 20%, 38%); }
+
+/* Monto grande: se lee bien con poca luz y se toca fácil */
+.modal-caja__monto {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    border: 3px solid hsl(var(--h), 32%, 80%);
+    border-radius: 14px;
+    background: hsl(var(--h), 40%, 97%);
+}
+
+.modal-caja__monto:focus-within { border-color: hsl(var(--h), var(--s), 45%); }
+
+.modal-caja__monto span { font-size: 2rem; font-weight: 700; }
+
+.modal-caja__monto input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: inherit;
+    outline: none;
+    font-family: inherit;
+}
+
+.modal-caja__nota { display: block; margin-top: 10px; font-size: .95rem; color: hsl(var(--h), 20%, 38%); }
+
+.modal-caja__msg { margin: 14px 0 0; color: #C0392B; font-weight: 600; }
+.modal-caja__msg[hidden] { display: none; }
+
+.modal-caja__botones {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 10px;
+    margin-top: 22px;
+}
+
+.modal-caja__botones button {
+    min-height: 54px;
+    border-radius: 12px;
+    font: 700 17px inherit;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.modal-caja__cancelar {
+    border: 2px solid hsl(var(--h), 32%, 85%);
+    background: #fff;
+    color: inherit;
+}
+
+.modal-caja__confirmar {
+    border: none;
+    background: hsl(var(--h), var(--s), 40%);
+    color: #fff;
+}
+
+.modal-caja__confirmar:disabled { opacity: .6; cursor: wait; }

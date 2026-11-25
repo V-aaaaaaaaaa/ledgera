@@ -77,17 +77,17 @@
             <form class="modal-form" id="createUserForm">
                 <div class="form-row">
                     <label for="newUsuario">Usuario *</label>
-                    <input type="text" id="newUsuario" placeholder="ej: jperez" required />
+                    <input type="text" id="newUsuario" placeholder="ej: jperez" data-filtro="usuario" maxlength="50" autocomplete="off" required />
                 </div>
 
                 <div class="form-row">
                     <label for="newNombre">Nombre completo *</label>
-                    <input type="text" id="newNombre" placeholder="ej: Juan Pérez" required />
+                    <input type="text" id="newNombre" placeholder="ej: Juan Pérez" data-filtro="letras" maxlength="150" required />
                 </div>
 
                 <div class="form-row">
                     <label for="newCedula">Cédula *</label>
-                    <input type="text" id="newCedula" placeholder="ej: 1020304050" required />
+                    <input type="text" id="newCedula" placeholder="ej: 1020304050" data-filtro="numeros" inputmode="numeric" maxlength="15" required />
                 </div>
 
                 <div class="form-row" id="rowNewPuesto">
@@ -144,17 +144,17 @@
 
                 <div class="form-row">
                     <label for="editUsuario">Usuario *</label>
-                    <input type="text" id="editUsuario" required />
+                    <input type="text" id="editUsuario" data-filtro="usuario" maxlength="50" autocomplete="off" required />
                 </div>
 
                 <div class="form-row">
                     <label for="editNombre">Nombre completo *</label>
-                    <input type="text" id="editNombre" required />
+                    <input type="text" id="editNombre" data-filtro="letras" maxlength="150" required />
                 </div>
 
                 <div class="form-row">
                     <label for="editCedula">Cédula *</label>
-                    <input type="text" id="editCedula" required />
+                    <input type="text" id="editCedula" data-filtro="numeros" inputmode="numeric" maxlength="15" required />
                 </div>
 
                 <div class="form-row" id="rowEditPuesto">

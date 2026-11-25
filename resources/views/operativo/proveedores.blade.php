@@ -67,17 +67,17 @@
 
                 <div class="form-row">
                     <label for="provNombre">Nombre o razón social *</label>
-                    <input type="text" id="provNombre" maxlength="150" placeholder="ej: Don Pedro - Finca El Salitre" required />
+                    <input type="text" id="provNombre" data-filtro="texto" maxlength="150" placeholder="ej: Don Pedro - Finca El Salitre" required />
                 </div>
 
                 <div class="form-row">
                     <label for="provTelefono">Teléfono</label>
-                    <input type="tel" id="provTelefono" inputmode="numeric" maxlength="10" placeholder="ej: 3109876543" />
+                    <input type="tel" id="provTelefono" data-filtro="numeros" inputmode="numeric" maxlength="10" placeholder="ej: 3109876543" />
                 </div>
 
                 <div class="form-row">
                     <label for="provContacto">Persona de contacto</label>
-                    <input type="text" id="provContacto" maxlength="100" placeholder="ej: Pedro Gómez" />
+                    <input type="text" id="provContacto" data-filtro="letras" maxlength="100" placeholder="ej: Pedro Gómez" />
                 </div>
 
                 {{-- Ley 1581 (Habeas Data): autorización obligatoria --}}

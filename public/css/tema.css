@@ -1,52 +1,58 @@
-
 /* =====================================================
-   LEDGERA - Identidad visual corporativa
-   Paleta original de la rama main
+   LEDGERA · Tema de color
+   Cada pantalla elige su color con una clase en <body> (tema-usuarios, tema-ventas...).
+   Solo cambia el tono (--h); todo lo demás se calcula desde ahí.
+   Los CSS de las pantallas deben usar SOLO estas variables, nunca colores verdes fijos.
+   Para convertir un CSS nuevo: python tools/aplicar-tema.py public/css/mi-modulo.css
    ===================================================== */
 
-body,
-.card,
-.btn-cierre {
+/* ---------- Tono de cada pantalla (0 a 360 en la rueda de color) ---------- */
+body                 { --h: 145; --s: 58%; }   /* verde de marca (por defecto) */
+body.tema-operativo  { --h: 145; --s: 58%; }   /* inicio del Dueño y del Vendedor */
+body.tema-admin      { --h: 228; --s: 52%; }   /* inicio del Administrador: azul índigo */
+body.tema-usuarios   { --h: 212; --s: 62%; }   /* azul */
+body.tema-puestos    { --h: 178; --s: 70%; }   /* turquesa */
+body.tema-auditoria  { --h: 262; --s: 52%; }   /* morado */
+body.tema-reportes   { --h: 330; --s: 55%; }   /* magenta */
+body.tema-ventas     { --h: 150; --s: 60%; }   /* verde esmeralda */
+body.tema-inventario { --h: 26;  --s: 78%; }   /* naranja */
+body.tema-fiado      { --h: 6;   --s: 62%; }   /* coral */
+body.tema-egresos    { --h: 345; --s: 58%; }   /* vino */
+body.tema-cierre     { --h: 236; --s: 48%; }   /* índigo */
+body.tema-proveedores { --h: 190; --s: 60%; }  /* azul petróleo */
 
-    /* Tono general de LEDGERA */
-    --h: 145;
-    --s: 58%;
+/* ---------- Tarjetas del dashboard: cada una con el color de su módulo ---------- */
+.card[data-modulo="usuarios"]      { --h: 212; --s: 62%; }
+.card[data-modulo="puestos"]       { --h: 178; --s: 70%; }
+.card[data-modulo="auditoria"]     { --h: 262; --s: 52%; }
+.card[data-modulo="reportes"]      { --h: 330; --s: 55%; }
+.card[data-modulo="ventas"]        { --h: 150; --s: 60%; }
+.card[data-modulo="inventario"]    { --h: 26;  --s: 78%; }
+.card[data-modulo="fiado"]         { --h: 6;   --s: 62%; }
+.card[data-modulo="egresos"]       { --h: 345; --s: 58%; }
+.card[data-modulo="exportaciones"] { --h: 200; --s: 65%; }
+.btn-cierre                        { --h: 236; --s: 48%; }
 
-    /* Colores principales */
-    --acento: #145A32;
-    --acento-oscuro: #0F3D2E;
-    --claro: #E8F5EE;
-    --suave: #F5F7F6;
-    --borde: #C8DED0;
-    --fondo-pagina: #F5F7F6;
-    --texto-suave: #4A6A4A;
+/* ---------- Variables derivadas (se recalculan en cada elemento con su propio tono) ---------- */
+body, .card, .btn-cierre {
+    --acento: hsl(var(--h), var(--s), 36%);          /* botones, bordes activos, números */
+    --acento-oscuro: hsl(var(--h), 55%, 15%);        /* encabezados y texto fuerte */
+    --claro: hsl(var(--h), 45%, 92%);                /* fondos de chips y resaltados */
+    --suave: hsl(var(--h), 40%, 97%);                /* fondo de campos */
+    --borde: hsl(var(--h), 32%, 85%);
+    --fondo-pagina: hsl(var(--h), 28%, 95%);
+    --texto-suave: hsl(var(--h), 20%, 38%);
 
-    /* Paleta original */
-    --verde-oscuro: #0F3D2E;
-    --verde-medio: #145A32;
-    --verde-acento: #27AE60;
-    --verde-claro: #E8F5EE;
-
-    --verde-osc: #0F3D2E;
-    --verde: #145A32;
-    --fondo: #F5F7F6;
-
-    /* Colores neutros */
-    --blanco: #FFFFFF;
-    --gris-texto: #1C1C1C;
-    --gris-suave: #6B7280;
+    /* nombres que ya usaban los dashboards y las pantallas de ventas e inventario */
+    --verde-oscuro: var(--acento-oscuro);
+    --verde-medio: var(--acento);
+    --verde-acento: hsl(var(--h), 62%, 46%);
+    --verde-claro: var(--claro);
+    --fondo: var(--fondo-pagina);
+    --verde-osc: var(--acento-oscuro);
+    --verde: var(--acento);
 }
 
-/* Estados de operación */
-
-.badge.active {
-    color: #1a5a1a;
-}
-
-.success-message {
-    color: #1a6a2a;
-}
-
-.error-message {
-    color: #c0392b;
-}
+/* ---------- Estados: siempre verde, rojo o ámbar, sin importar el módulo ---------- */
+.badge.active { color: #1a5a1a; }
+.success-message { color: #1a6a2a; }
