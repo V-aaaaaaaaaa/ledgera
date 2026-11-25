@@ -20,6 +20,8 @@ class UsuarioController extends Controller
 {
     use RespondeJson;
 
+    private const ROLES = ['Administrador', 'Dueno', 'Vendedor'];
+
     public function index(): View
     {
         return view('admin.usuarios');
@@ -32,7 +34,8 @@ class UsuarioController extends Controller
         $consulta = Usuario::with('puesto');
 
         if ($actor->esAdministrador()) {
-            $consulta->where('rol', 'Dueno');
+            // El Administrador ve y gestiona las cuentas de los tres roles
+            $consulta->orderByRaw("FIELD(rol, 'Administrador', 'Dueno', 'Vendedor')");
         } else {
             $consulta->where('rol', 'Vendedor')
                 ->where('id_puesto', $actor->id_puesto);
@@ -76,27 +79,38 @@ class UsuarioController extends Controller
         $actor = $request->user();
         $datos = $this->validar($request);
 
-        $rol = $actor->esAdministrador()
-            ? 'Dueno'
-            : 'Vendedor';
+        // El Administrador elige el rol; el Dueño solo crea Vendedores de su puesto
+        if ($actor->esAdministrador()) {
+            $rol = $datos['rol'] ?? null;
+
+            if (!in_array($rol, self::ROLES, true)) {
+                $this->abortar('Elige un rol válido.', 400);
+            }
+        } else {
+            $rol = 'Vendedor';
+        }
 
         $idPuesto = $actor->esAdministrador()
             ? ($datos['id_puesto'] ?? null)
             : $actor->id_puesto;
 
         $clave = ClaveTemporal::generar();
+        $estado = 'Activo';
 
         DB::transaction(function () use (
-            $datos, $rol, $idPuesto, $clave
+            $datos, $rol, $idPuesto, $clave, &$estado
         ) {
 
-            $puesto = Puesto::lockForUpdate()->find($idPuesto);
+            // El Administrador no pertenece a ningún puesto
+            $puesto = null;
 
-            if (!$puesto || $puesto->estado !== 'Activo') {
-                $this->abortar('Selecciona un puesto activo.', 400);
+            if ($rol !== 'Administrador') {
+                $puesto = Puesto::lockForUpdate()->find($idPuesto);
+
+                if (!$puesto || $puesto->estado !== 'Activo') {
+                    $this->abortar('Selecciona un puesto activo.', 400);
+                }
             }
-
-            $estado = 'Activo';
 
             // Si ya existe un dueño, la nueva cuenta queda
             // inactiva hasta realizar el cambio de responsable.
@@ -117,7 +131,7 @@ class UsuarioController extends Controller
                 'usuario' => $datos['usuario'],
                 'nombre_completo' => $datos['nombre'],
                 'num_identificacion' => $datos['cedula'],
-                'id_puesto' => $puesto->id_puesto,
+                'id_puesto' => $puesto?->id_puesto,
                 'rol' => $rol,
                 'estado' => $estado,
                 'password_hash' => Hash::make($clave),
@@ -142,7 +156,9 @@ class UsuarioController extends Controller
 
         return response()->json([
             'ok' => true,
-            'mensaje' => 'Usuario registrado correctamente.',
+            'mensaje' => $estado === 'Inactivo'
+                ? 'Usuario creado inactivo: el puesto ya tiene un Dueño activo. Usa "Cambiar dueño" en Puestos.'
+                : 'Usuario registrado correctamente.',
             'clave' => $clave,
         ], 201);
     }
@@ -163,14 +179,40 @@ class UsuarioController extends Controller
 
             $this->autorizarCuenta($request, $u);
 
-            if (
-                isset($datos['id_puesto'])
-                && (int) $datos['id_puesto'] !== (int) $u->id_puesto
-            ) {
-                $this->abortar(
-                    'No se permite trasladar cuentas entre puestos desde esta opción.',
-                    409
-                );
+            $idPuestoNuevo = $u->id_puesto;
+
+            $cambiaPuesto = $u->rol !== 'Administrador'
+                && isset($datos['id_puesto'])
+                && (int) $datos['id_puesto'] !== (int) $u->id_puesto;
+
+            if ($cambiaPuesto) {
+                // Solo el Administrador corrige el puesto (ej.: se creó en el puesto equivocado)
+                if (!$request->user()->esAdministrador()) {
+                    $this->abortar('Solo el Administrador puede cambiar el puesto de una cuenta.', 403);
+                }
+
+                $destino = Puesto::lockForUpdate()->find($datos['id_puesto']);
+
+                if (!$destino || $destino->estado !== 'Activo') {
+                    $this->abortar('Selecciona un puesto activo.', 400);
+                }
+
+                // Un puesto solo puede tener un Dueño activo
+                if ($u->rol === 'Dueno' && $u->estado === 'Activo') {
+                    $ocupado = Usuario::where('id_puesto', $destino->id_puesto)
+                        ->where('rol', 'Dueno')
+                        ->where('estado', 'Activo')
+                        ->exists();
+
+                    if ($ocupado) {
+                        $this->abortar(
+                            'Ese puesto ya tiene un Dueño activo. Desactiva uno de los dos o usa "Cambiar dueño".',
+                            409
+                        );
+                    }
+                }
+
+                $idPuestoNuevo = $destino->id_puesto;
             }
 
             $anterior = $this->datosAuditoria($u);
@@ -179,6 +221,7 @@ class UsuarioController extends Controller
                 'usuario' => $datos['usuario'],
                 'nombre_completo' => $datos['nombre'],
                 'num_identificacion' => $datos['cedula'],
+                'id_puesto' => $idPuestoNuevo,
             ]);
 
             $this->guardar($u);
@@ -187,7 +230,9 @@ class UsuarioController extends Controller
                 'USUARIO_EDITADO',
                 $u->id_usuario,
                 $u->id_puesto,
-                'Actualización de cuenta',
+                $cambiaPuesto
+                    ? 'Actualización de cuenta con cambio de puesto'
+                    : 'Actualización de cuenta',
                 null,
                 'usuarios',
                 $anterior,
@@ -216,6 +261,10 @@ class UsuarioController extends Controller
                 ->findOrFail($usuario->id_usuario);
 
             $this->autorizarCuenta($request, $u);
+
+            if ((int) $u->id_usuario === (int) $request->user()->id_usuario) {
+                $this->abortar('No puedes restablecer tu propia clave desde aquí.', 400);
+            }
 
             $u->forceFill([
                 'password_hash' => Hash::make($clave),
@@ -259,15 +308,34 @@ class UsuarioController extends Controller
             $request, $usuario, $activar
         ) {
 
-            $puesto = Puesto::lockForUpdate()
-                ->findOrFail($usuario->id_puesto);
+            // El Administrador no tiene puesto
+            $puesto = $usuario->id_puesto
+                ? Puesto::lockForUpdate()->find($usuario->id_puesto)
+                : null;
 
             $u = Usuario::lockForUpdate()
                 ->findOrFail($usuario->id_usuario);
 
             $this->autorizarCuenta($request, $u);
 
-            if ($activar && $puesto->estado !== 'Activo') {
+            if (!$activar) {
+                if ((int) $u->id_usuario === (int) $request->user()->id_usuario) {
+                    $this->abortar('No puedes desactivar tu propia cuenta.', 400);
+                }
+
+                if ($u->rol === 'Administrador') {
+                    $hayOtro = Usuario::where('rol', 'Administrador')
+                        ->where('estado', 'Activo')
+                        ->where('id_usuario', '<>', $u->id_usuario)
+                        ->exists();
+
+                    if (!$hayOtro) {
+                        $this->abortar('Debe quedar al menos un Administrador activo.', 400);
+                    }
+                }
+            }
+
+            if ($activar && $puesto && $puesto->estado !== 'Activo') {
                 $this->abortar('El puesto está inactivo.', 409);
             }
 
@@ -324,10 +392,8 @@ class UsuarioController extends Controller
 
         $actor = $request->user();
 
-        if (
-            $actor->esAdministrador()
-            && $usuario->rol === 'Dueno'
-        ) {
+        // El Administrador gestiona cualquier cuenta
+        if ($actor->esAdministrador()) {
             return;
         }
 
@@ -360,6 +426,7 @@ class UsuarioController extends Controller
                     'regex:/^[0-9]{5,15}$/'
                 ],
                 'id_puesto' => ['nullable', 'integer', 'min:1'],
+                'rol' => ['nullable', 'string'],
             ],
             [
                 'usuario.required' => 'Escribe el usuario.',

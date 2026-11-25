@@ -17,7 +17,7 @@
 
         <h1 class="header-title">
             {{ auth()->user()->esAdministrador()
-                ? 'Gestión de dueños'
+                ? 'Gestión de usuarios'
                 : 'Gestión de vendedores' }}
         </h1>
 
@@ -97,19 +97,20 @@
 
                 
                 <div class="form-row">
-                    <label for="newRol">Rol asignado automáticamente</label>
-
-                    <select id="newRol" disabled>
-                        @if(auth()->user()->esAdministrador())
-                            <option value="Dueno" selected>Dueño</option>
-                        @else
+                    @if(auth()->user()->esAdministrador())
+                        <label for="newRol">Rol *</label>
+                        <select id="newRol" required>
+                            <option value="Vendedor">Vendedor</option>
+                            <option value="Dueno">Dueño</option>
+                            <option value="Administrador">Administrador</option>
+                        </select>
+                    @else
+                        <label for="newRol">Rol</label>
+                        <select id="newRol" disabled>
                             <option value="Vendedor" selected>Vendedor</option>
-                        @endif
-                    </select>
-
-                    <small class="hint">
-                        El rol se asigna según tus permisos.
-                    </small>
+                        </select>
+                        <small class="hint">Desde aquí solo creas Vendedores de tu puesto.</small>
+                    @endif
                 </div>
 
 

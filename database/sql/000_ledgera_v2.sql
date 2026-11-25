@@ -17,28 +17,9 @@
 --      La BD garantiza integridad estructural, no flujos.
 -- =====================================================================
 
-DROP DATABASE IF EXISTS -- =====================================================================
--- LEDGERA · Base de datos v2 (consolidada y normalizada)
--- Reemplaza 000_ledgera_base.sql, 001_auditoria.sql y 002_incidencias.sql
--- Requiere MySQL 8.0.16+ (CHECK reales y columnas generadas).
--- ¡OJO! Este script BORRA la base `ledgera` y la recrea. Solo para desarrollo.
---
--- REGLAS DE DISEÑO (para sustentación)
---  R1. Ningún dato derivado se guarda a mano (saldos, estados de pago, saldo de
---      crédito): se calculan en vistas. Excepciones aceptadas y justificadas:
---      stock_actual, id_puesto en tablas transaccionales, jornadas_caja.estado,
---      stock_antes/stock_despues, valor_acordado (ver comentarios).
---  R2. Aislamiento por puesto (RF-002 c.7): toda tabla transaccional lleva
---      id_puesto y sus FK son COMPUESTAS (id, id_puesto). La BD impide mezclar puestos.
---  R3. Registros financieros inmutables: abonos, cierres y auditoría no se
---      editan ni se borran (triggers). Las correcciones son filas nuevas.
---  R4. La lógica transaccional vive en Laravel (DB::transaction + lockForUpdate).
---      La BD garantiza integridad estructural, no flujos.
--- =====================================================================
-
-DROP DATABASE IF EXISTS ledgera_v02;
-CREATE DATABASE ledgera_v02 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE ledgera_v02;
+DROP DATABASE IF EXISTS ledgera;
+CREATE DATABASE ledgera CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE ledgera;
 
 -- ============================ SEGURIDAD =============================
 CREATE TABLE puestos (
