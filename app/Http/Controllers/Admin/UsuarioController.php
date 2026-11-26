@@ -308,6 +308,22 @@ class UsuarioController extends Controller
             $request, $usuario, $activar
         ) {
 
+            // Coordinar las operaciones sobre cuentas administrativas.
+            $administradores = Usuario::where('rol', 'Administrador')
+                ->orderBy('id_usuario')
+                ->lockForUpdate()
+                ->get();
+
+            if ($request->user()->esAdministrador()) {
+                $actor = $administradores->firstWhere(
+                    'id_usuario', $request->user()->id_usuario
+                );
+
+                if (!$actor || $actor->estado !== 'Activo') {
+                    $this->abortar('Tu cuenta no está activa.', 403);
+                }
+            }
+
             // El Administrador no tiene puesto
             $puesto = $usuario->id_puesto
                 ? Puesto::lockForUpdate()->find($usuario->id_puesto)
@@ -324,10 +340,10 @@ class UsuarioController extends Controller
                 }
 
                 if ($u->rol === 'Administrador') {
-                    $hayOtro = Usuario::where('rol', 'Administrador')
+                    $hayOtro = $administradores
                         ->where('estado', 'Activo')
                         ->where('id_usuario', '<>', $u->id_usuario)
-                        ->exists();
+                        ->isNotEmpty();
 
                     if (!$hayOtro) {
                         $this->abortar('Debe quedar al menos un Administrador activo.', 400);
