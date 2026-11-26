@@ -3,6 +3,7 @@
 // Habla con Admin\UsuarioController (rutas /admin/usuarios...).
 // =====================================================
 const ES_ADMIN = window.LEDGERA.usuario?.rol === 'Administrador';
+const ID_USUARIO_ACTUAL = Number(window.LEDGERA.usuario?.id);
 
 const RUTA = ES_ADMIN
     ? '/admin/usuarios'
@@ -84,6 +85,7 @@ function renderTabla() {
 
     usuarios.forEach((u) => {
         const activo = u.estado === 'Activo';
+        const esCuentaPropia = Number(u.id) === ID_USUARIO_ACTUAL;
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>
@@ -103,12 +105,17 @@ function renderTabla() {
                         <button class="dropdown-item" data-action="editar" data-id="${u.id}">
                             <i class="fas fa-pen"></i> Editar
                         </button>
-                        <button class="dropdown-item" data-action="restablecer" data-id="${u.id}">
-                            <i class="fas fa-key"></i> Restablecer clave
-                        </button>
-                        <button class="dropdown-item ${activo ? 'danger' : ''}" data-action="toggle" data-id="${u.id}">
-                            <i class="fas fa-${activo ? 'ban' : 'check'}"></i> ${activo ? 'Desactivar' : 'Activar'}
-                        </button>
+
+                        ${!esCuentaPropia ? `
+                            <button class="dropdown-item" data-action="restablecer" data-id="${u.id}">
+                                <i class="fas fa-key"></i> Restablecer clave
+                            </button>
+
+                            <button class="dropdown-item ${activo ? 'danger' : ''}" data-action="toggle" data-id="${u.id}">
+                                <i class="fas fa-${activo ? 'ban' : 'check'}"></i>
+                                ${activo ? 'Desactivar' : 'Activar'}
+                            </button>
+                        ` : ''}
                     </div>
                 </div>
             </td>`;

@@ -13,7 +13,11 @@
 
 @php
     $u = auth()->user();
-    $datosUsuario = $u ? ['nombre' => $u->nombre_completo, 'rol' => $u->rol] : null;
+    $datosUsuario = $u ? [
+        'id' => $u->id_usuario,
+        'nombre' => $u->nombre_completo,
+        'rol' => $u->rol
+    ] : null;
 @endphp
 <script>
     window.LEDGERA = {
