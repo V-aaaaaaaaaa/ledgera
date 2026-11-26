@@ -91,6 +91,21 @@
                 <i class="fas fa-cash-register"></i>
                 <span>Mi caja</span>
             </a>
+            <p class="op-section-label">CATÁLOGOS</p>
+
+                <a href="{{ route('catalogos.index', 'clientes') }}"
+                class="op-link {{ request()->route('tipo') === 'clientes' ? 'is-active' : '' }}"
+                title="Clientes" aria-label="Clientes">
+                    <i class="fas fa-address-book"></i>
+                    <span>Clientes</span>
+                </a>
+
+                <a href="{{ route('catalogos.index', 'productos') }}"
+                class="op-link {{ request()->route('tipo') === 'productos' ? 'is-active' : '' }}"
+                title="Productos" aria-label="Productos">
+                    <i class="fas fa-boxes-stacked"></i>
+                    <span>Productos</span>
+                </a>
 
             @if($esDueno)
 

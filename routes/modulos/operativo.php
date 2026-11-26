@@ -7,6 +7,7 @@ use App\Http\Controllers\IncidenciaController;
 use App\Http\Controllers\PanelController;
 use App\Http\Controllers\ProveedorController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\CatalogoController;
 
 // Dashboard operativo
 Route::get('/dashboard', [
@@ -84,4 +85,24 @@ Route::middleware('rol:Dueno')
                     UsuarioController::class, 'restablecerClave'
                 ])->name('restablecer');
             });
+    });
+// Catálogos comerciales: Clientes y Productos
+Route::prefix('catalogos/{tipo}')
+    ->where(['tipo' => 'clientes|productos'])
+    ->name('catalogos.')
+    ->group(function () {
+
+        Route::get('/', [CatalogoController::class, 'index'])
+            ->name('index');
+
+        Route::post('/', [CatalogoController::class, 'store'])
+            ->name('store');
+
+        Route::put('/{id}', [CatalogoController::class, 'update'])
+            ->whereNumber('id')
+            ->name('update');
+
+        Route::post('/{id}/estado', [CatalogoController::class, 'cambiarEstado'])
+            ->whereNumber('id')
+            ->name('estado');
     });
