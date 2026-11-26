@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\UsuarioController;
 use App\Http\Controllers\CajaController;
 use App\Http\Controllers\CierreCajaController;
 use App\Http\Controllers\ConfiguracionInicialController;
+use App\Http\Controllers\EgresoController;
 use App\Http\Controllers\IncidenciaController;
 use App\Http\Controllers\PanelController;
 use App\Http\Controllers\ProveedorController;
@@ -35,6 +36,16 @@ Route::middleware('rol:Dueno')
         Route::post('/', [ConfiguracionInicialController::class, 'guardar'])->name('configuracion.guardar');
         Route::post('/omitir', [ConfiguracionInicialController::class, 'omitir'])->name('configuracion.omitir');
     });
+
+// Egresos (RF-014): Dueño y Vendedor. Los pagos a proveedores son solo del Dueño
+// (lo valida el controlador y la ruta de facturas).
+Route::prefix('egresos')->name('egresos.')->group(function () {
+    Route::get('/', [EgresoController::class, 'index'])->name('index');
+    Route::get('/datos', [EgresoController::class, 'datos'])->name('datos');
+    Route::post('/', [EgresoController::class, 'store'])->name('store');
+    Route::get('/proveedor/{proveedor}/facturas', [EgresoController::class, 'obligaciones'])
+        ->whereNumber('proveedor')->middleware('rol:Dueno')->name('facturas');
+});
 
 // Cierre de caja (RF-015): Dueño y Vendedor. El límite de descuadre solo lo cambia el Dueño.
 Route::prefix('cierre-caja')->name('cierre.')->group(function () {
