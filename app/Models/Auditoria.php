@@ -46,6 +46,8 @@ class Auditoria extends Model
         'CAJA_ABIERTA' => 'Abrió la caja',
         'CAJA_MONTO_CORREGIDO' => 'Corrigió el efectivo inicial de la caja',
         'CAJA_CERRADA' => 'Cerró la caja',
+        'PRODUCTO_CREADO' => 'Registró un producto',
+        'CALIDAD_CREADA' => 'Registró una calidad de producto',
         'UMBRAL_CAMBIADO' => 'Cambió el límite de descuadre de caja',
     ];
 

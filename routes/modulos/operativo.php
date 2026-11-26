@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\UsuarioController;
 use App\Http\Controllers\CajaController;
 use App\Http\Controllers\CierreCajaController;
+use App\Http\Controllers\ConfiguracionInicialController;
 use App\Http\Controllers\IncidenciaController;
 use App\Http\Controllers\PanelController;
 use App\Http\Controllers\ProveedorController;
@@ -25,6 +26,15 @@ Route::prefix('caja')->name('caja.')->group(function () {
     Route::post('/abrir', [CajaController::class, 'abrir'])->name('abrir');
     Route::put('/apertura', [CajaController::class, 'corregir'])->name('corregir');
 });
+
+// Configuración inicial del puesto (primer ingreso del Dueño): productos y calidades
+Route::middleware('rol:Dueno')
+    ->prefix('configuracion-inicial')
+    ->group(function () {
+        Route::get('/', [ConfiguracionInicialController::class, 'mostrar'])->name('configuracion.inicial');
+        Route::post('/', [ConfiguracionInicialController::class, 'guardar'])->name('configuracion.guardar');
+        Route::post('/omitir', [ConfiguracionInicialController::class, 'omitir'])->name('configuracion.omitir');
+    });
 
 // Cierre de caja (RF-015): Dueño y Vendedor. El límite de descuadre solo lo cambia el Dueño.
 Route::prefix('cierre-caja')->name('cierre.')->group(function () {
