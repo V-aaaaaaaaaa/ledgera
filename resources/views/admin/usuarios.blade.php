@@ -90,10 +90,7 @@
                     <input type="text" id="newCedula" placeholder="ej: 1020304050" data-filtro="numeros" inputmode="numeric" maxlength="15" required />
                 </div>
 
-                <div class="form-row" id="rowNewPuesto">
-                    <label for="newPuesto">Puesto *</label>
-                    <select id="newPuesto" required></select>
-                </div>
+                
 
                 
                 <div class="form-row">
@@ -111,6 +108,11 @@
                         </select>
                         <small class="hint">Desde aquí solo creas Vendedores de tu puesto.</small>
                     @endif
+                </div>
+                
+                <div class="form-row" id="rowNewPuesto">
+                    <label for="newPuesto">Puesto *</label>
+                    <select id="newPuesto" required></select>
                 </div>
 
 
