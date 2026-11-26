@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.operativo')
 
 @section('titulo', 'LEDGERA - Cierre de caja')
 @section('tema', 'tema-cierre')
@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="{{ asset('css/cierre.css') }}?v={{ filemtime(public_path('css/cierre.css')) }}">
 @endpush
 
-@section('contenido')
+@section('operativo-contenido')
     <header class="app-header">
         <button class="btn-back" id="btnBack" title="Volver al inicio">
             <i class="fas fa-arrow-left"></i>

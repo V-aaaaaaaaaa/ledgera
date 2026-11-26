@@ -1,4 +1,6 @@
-@extends('layouts.app')
+@extends(auth()->user()->esAdministrador()
+    ? 'layouts.app'
+    : 'layouts.operativo')
 
 @section('titulo', 'LEDEGERA - Usuarios')
 @section('tema', 'tema-usuarios')
@@ -8,7 +10,9 @@
     <link rel="stylesheet" href="{{ asset('css/usuarios.css') }}?v={{ filemtime(public_path('css/usuarios.css')) }}">
 @endpush
 
-@section('contenido')
+@section(auth()->user()->esAdministrador()
+    ? 'contenido'
+    : 'operativo-contenido')
     <!-- HEADER (mismo patrón del dashboard) -->
     <header class="app-header">
         <button class="btn-back" id="btnBack" title="Volver al dashboard">

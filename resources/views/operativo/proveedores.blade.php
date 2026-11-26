@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.operativo')
 
 @section('titulo', 'LEDGERA - Proveedores')
 @section('tema', 'tema-proveedores')
@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="{{ asset('css/proveedores.css') }}?v={{ filemtime(public_path('css/proveedores.css')) }}">
 @endpush
 
-@section('contenido')
+@section('operativo-contenido')
     <header class="app-header">
         <button class="btn-back" id="btnBack" title="Volver al inicio">
             <i class="fas fa-arrow-left"></i>

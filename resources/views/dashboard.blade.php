@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.operativo')
 
 @section('titulo', 'Ledgera · Dashboard')
 @section('tema', 'tema-operativo')
@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="{{ asset('css/dashboard.css') }}?v={{ filemtime(public_path('css/dashboard.css')) }}">
 @endpush
 
-@section('contenido')
+@section('operativo-contenido')
   <!-- Fondos decorativos -->
   <div class="bg-blob bg-blob--1"></div>
   <div class="bg-blob bg-blob--2"></div>
