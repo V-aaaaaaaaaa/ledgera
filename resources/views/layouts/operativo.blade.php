@@ -91,6 +91,13 @@
                 <i class="fas fa-cash-register"></i>
                 <span>Mi caja</span>
             </a>
+
+            <a href="{{ route('egresos.index') }}"
+               class="op-link {{ request()->routeIs('egresos.*') ? 'is-active' : '' }}"
+               title="Egresos" aria-label="Egresos">
+                <i class="fas fa-money-bill-transfer"></i>
+                <span>Egresos</span>
+            </a>
             <p class="op-section-label">CATÁLOGOS</p>
 
                 <a href="{{ route('catalogos.index', 'clientes') }}"

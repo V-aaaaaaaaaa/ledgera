@@ -9,7 +9,7 @@ const PAGINAS_MODULO = {
   ventas:        null,   // '/ventas'  (pendiente de portar a Laravel)
   inventario:    null,   // '/inventario'  (pendiente de portar a Laravel)
   fiado:         null,   // '/fiado'
-  egresos:       null,   // '/egresos'
+  egresos:       '/egresos',
   exportaciones: null,   // '/exportaciones'  (solo Dueño)
   equipo:        '/gestion/usuarios',   // solo Dueño, desde el menú del perfil
   proveedores:   '/proveedores',        // solo Dueño, desde el menú del perfil

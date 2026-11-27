@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Support\Facades\DB;
 
 class Usuario extends Authenticatable
 {
@@ -49,6 +50,16 @@ class Usuario extends Authenticatable
     {
         if ($this->debe_cambiar_clave) {
             return route('clave.form');
+        }
+
+        // Primer ingreso del Dueño: si su puesto no tiene productos, primero los registra
+        // (a menos que haya dicho "Lo hago después" en esta sesión)
+        if (
+            $this->rol === 'Dueno'
+            && !session('configuracion_omitida')
+            && !DB::table('productos')->where('id_puesto', $this->id_puesto)->exists()
+        ) {
+            return route('configuracion.inicial');
         }
 
         return $this->esAdministrador()
