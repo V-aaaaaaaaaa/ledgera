@@ -26,14 +26,14 @@ class ActividadNegocioController extends Controller
 
     public const TIPOS = [
         'Venta', 'Venta anulada', 'Abono', 'Egreso', 'Entrada de mercancía',
-        'Ajuste de inventario', 'Apertura de caja', 'Cierre de caja', 'Cambio', 'Ingreso',
+        'Ajuste de inventario', 'Apertura de caja', 'Cierre de caja', 'Cierre del puesto', 'Cambio', 'Ingreso',
     ];
 
     private const POR_PAGINA = 30;
     private const MAX_DIAS = 92;   // rango máximo para que la consulta no se vuelva pesada
 
     // Estas acciones de auditoría ya salen desde su propia tabla (no se repiten)
-    private const ACCIONES_REPETIDAS = ['CAJA_ABIERTA', 'CAJA_CERRADA', 'EGRESO_REGISTRADO'];
+    private const ACCIONES_REPETIDAS = ['CAJA_ABIERTA', 'CAJA_CERRADA', 'EGRESO_REGISTRADO', 'CIERRE_PUESTO', 'AJUSTE_INVENTARIO'];
 
     // Acciones de la auditoría que se muestran como "Ingreso" (entradas al sistema)
     private const ACCIONES_INGRESO = ['INGRESO', 'LOGIN_FALLIDO', 'LOGIN_RECHAZADO', 'CUENTA_BLOQUEADA'];
@@ -204,6 +204,19 @@ class ActividadNegocioController extends Controller
                            CONCAT(IF(ci.diferencia > 0, ' · Sobró $', ' · Faltó $'), {$pesos('ABS(ci.diferencia)')})),
                         IF(ci.explicacion IS NULL, '', CONCAT(' · ', ci.explicacion))) AS detalle,
                     ci.efectivo_contado AS monto, 'Efectivo' AS medio, ci.con_descuadre AS alerta, NULL AS codigo");
+        }
+
+        if ($quiere('Cierre del puesto')) {
+            $partes[] = DB::table('cierres_puesto as cp')
+                ->where('cp.id_puesto', $puesto)
+                ->whereBetween('cp.fecha_registro', [$desde, $hasta])
+                ->selectRaw("cp.fecha_registro AS fecha, 'Cierre del puesto' AS tipo, cp.id_usuario,
+                    CONCAT(cp.cantidad_cajas, ' cajas · Esperado $', {$pesos('cp.efectivo_esperado')},
+                        ' · Contado $', {$pesos('cp.efectivo_contado')},
+                        IF(cp.diferencia = 0, ' · Cuadró',
+                           CONCAT(IF(cp.diferencia > 0, ' · Sobró $', ' · Faltó $'), {$pesos('ABS(cp.diferencia)')}))) AS detalle,
+                    cp.efectivo_contado AS monto, 'Efectivo' AS medio,
+                    IF(cp.cajas_con_descuadre > 0, 1, 0) AS alerta, NULL AS codigo");
         }
 
         if ($quiere('Cambio', 'Ingreso')) {

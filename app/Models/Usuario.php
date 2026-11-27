@@ -51,6 +51,7 @@ class Usuario extends Authenticatable
     public const PODERES_DELEGABLES = [
         'pagar_proveedores',       // registrar pagos a proveedores (egresos)
         'gestionar_proveedores',   // crear y editar proveedores
+        'gestionar_productos',     // crear productos, tipos y presentaciones nuevos
         'ajustes_cierre',          // ajustes post-cierre (RF-016, cuando se construya)
     ];
 

@@ -4,10 +4,12 @@ use App\Http\Controllers\Admin\UsuarioController;
 use App\Http\Controllers\CajaController;
 use App\Http\Controllers\CatalogoController;
 use App\Http\Controllers\CierreCajaController;
+use App\Http\Controllers\CierrePuestoController;
 use App\Http\Controllers\ConfiguracionInicialController;
 use App\Http\Controllers\EgresoController;
 use App\Http\Controllers\EntradaMercanciaController;
 use App\Http\Controllers\ActividadNegocioController;
+use App\Http\Controllers\AjusteInventarioController;
 use App\Http\Controllers\IncidenciaController;
 use App\Http\Controllers\PanelController;
 use App\Http\Controllers\ProveedorController;
@@ -100,6 +102,13 @@ Route::prefix('cierre-caja')->name('cierre.')->group(function () {
 
     Route::post('/', [CierreCajaController::class, 'cerrar'])
         ->name('cerrar');
+
+    // Cierre del puesto: cualquiera del puesto, cuando todas las cajas estén cerradas
+    Route::get('/puesto', [CierrePuestoController::class, 'estado'])
+        ->name('puesto.estado');
+
+    Route::post('/puesto', [CierrePuestoController::class, 'cerrar'])
+        ->name('puesto.cerrar');
 
     Route::put('/umbral', [CierreCajaController::class, 'cambiarUmbral'])
         ->middleware('rol:Dueno')
@@ -223,6 +232,13 @@ Route::prefix('catalogos/{tipo}')
 // =====================================================
 // ENTRADAS DE MERCANCÍA — RF-006
 // =====================================================
+
+// =====================================================
+// AJUSTES DE INVENTARIO — RF-008 (Dueño y Vendedor)
+// =====================================================
+
+Route::post('/inventario/ajustes', [AjusteInventarioController::class, 'store'])
+    ->name('inventario.ajuste');
 
 Route::prefix('entradas-mercancia')
     ->name('entradas.')

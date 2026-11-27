@@ -381,10 +381,13 @@ document.addEventListener('DOMContentLoaded', () => {
             ));
         });
 
-        selector.add(new Option(
-            '+ Registrar nuevo tipo',
-            NUEVO_TIPO
-        ));
+        // Crear tipos nuevos: solo Dueño o Vendedor encargado
+        if (window.LEDGERA?.usuario?.puede_productos) {
+            selector.add(new Option(
+                '+ Registrar nuevo tipo',
+                NUEVO_TIPO
+            ));
+        }
 
         campoNuevo.value = '';
 

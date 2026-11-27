@@ -8,6 +8,7 @@
     {{-- Encabezado compartido con las demás pantallas --}}
     <link rel="stylesheet" href="{{ asset('css/usuarios.css') }}?v={{ filemtime(public_path('css/usuarios.css')) }}">
     <link rel="stylesheet" href="{{ asset('css/cierre.css') }}?v={{ filemtime(public_path('css/cierre.css')) }}">
+    <link rel="stylesheet" href="{{ asset('css/cierre-puesto.css') }}?v={{ filemtime(public_path('css/cierre-puesto.css')) }}">
 @endpush
 
 @section('operativo-contenido')
@@ -93,6 +94,21 @@
             <p id="resultado"></p>
             <button type="button" class="cierre__btn" data-volver>Volver al inicio</button>
         </section>
+        {{-- ===== Cierre del puesto (consolida todas las cajas) ===== --}}
+        <section class="cierre__tarjeta cpu" id="cierrePuesto" hidden>
+            <h2><i class="fas fa-store"></i> Cierre del puesto</h2>
+            <p class="cpu__ayuda">Cuando todas las personas hayan cerrado su caja, cualquiera puede hacer el cierre del puesto: suma todas las cajas en un solo cierre del día.</p>
+
+            <div class="cpu__aviso" id="cpuAbiertas" hidden></div>
+
+            <ul class="cpu__lista" id="cpuLista"></ul>
+            <div class="cpu__total" id="cpuTotal" hidden></div>
+
+            <p class="cierre__msg" id="cpuMsg" role="alert" hidden></p>
+            <button type="button" class="cierre__btn" id="btnCierrePuesto" hidden>Hacer cierre del puesto</button>
+
+            <p class="cpu__ultimo" id="cpuUltimo" hidden></p>
+        </section>
     </main>
 
     {{-- Confirmación (el cierre no se puede deshacer) --}}
@@ -128,4 +144,5 @@
 
 @push('scripts')
     <script src="{{ asset('js/cierre.js') }}?v={{ filemtime(public_path('js/cierre.js')) }}"></script>
+    <script src="{{ asset('js/cierre-puesto.js') }}?v={{ filemtime(public_path('js/cierre-puesto.js')) }}"></script>
 @endpush

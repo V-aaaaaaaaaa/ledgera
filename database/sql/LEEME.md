@@ -18,10 +18,11 @@
 | 004 | `004_unidad_comercial.sql` | Incorpora la unidad comercial al producto. |
 | 005 | `005_tipos_y_presentaciones.sql` | Separa productos, tipos y presentaciones comerciales independientes. |
 | 006 | `006_cajas_independientes.sql` | Jornadas de caja independientes por operador (cada persona abre y cierra su caja). |
+| 007 | `007_cierre_puesto.sql` | Cierre del puesto: consolida en un solo cierre del día los cierres individuales. |
 
-**Atajo para desarrollo:** `instalar_todo.sql` junta 000 + 003 + 004 + 005 + 006 + los datos de prueba en un solo archivo.
+**Atajo para desarrollo:** `instalar_todo.sql` junta 000 + 003 a 007 + los datos de prueba en un solo archivo.
 Borra y recrea la base completa: úsalo cuando no te importe perder los datos de tu PC.
-Cuando se agregue un script nuevo (007…), también se pega al final de `instalar_todo.sql`.
+Cuando se agregue un script nuevo (008…), también se pega al final de `instalar_todo.sql`.
 
 **Advertencia:** el script 000 elimina y recrea la base `ledgera`.
 No debe ejecutarse sobre una instalación existente que necesite conservar sus datos.

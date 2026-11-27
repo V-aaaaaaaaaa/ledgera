@@ -77,7 +77,7 @@
                     </select>
                 </label>
 
-                @if($esDueno)
+                @if(auth()->user()->puede('gestionar_proveedores'))
                     <button type="button"
                             class="cat-secondary"
                             id="rp-nuevo-proveedor">
@@ -206,9 +206,12 @@
                             Seleccionar del catálogo
                         </option>
 
+                        {{-- Crear productos nuevos: Dueño o Vendedor encargado --}}
+                        @if(auth()->user()->puede('gestionar_productos'))
                         <option value="nuevo">
                             + Registrar nuevo producto
                         </option>
+                        @endif
 
                     </select>
                 </label>
@@ -272,9 +275,11 @@
                             Seleccionar tipo
                         </option>
 
+                        @if(auth()->user()->puede('gestionar_productos'))
                         <option value="__nuevo__">
                             + Registrar nuevo tipo
                         </option>
+                        @endif
 
                     </select>
 

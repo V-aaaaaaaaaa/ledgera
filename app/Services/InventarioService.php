@@ -94,6 +94,9 @@ class InventarioService
             ];
         }
 
+        // Crear productos es del Dueño o el Vendedor encargado
+        $this->exigirPermisoCatalogo($actor, 'producto');
+
         $id = DB::table('productos')->insertGetId([
             'id_puesto' => $puesto,
             'nombre_producto' => $nombre,
@@ -149,6 +152,9 @@ class InventarioService
                 'creado' => false,
             ];
         }
+
+        // Crear tipos es del Dueño o el Vendedor encargado
+        $this->exigirPermisoCatalogo($actor, 'tipo');
 
         $id = DB::table('tipos_producto')->insertGetId([
             'id_producto' => $idProducto,
@@ -228,6 +234,9 @@ class InventarioService
             ->first();
 
         if (!$inventario) {
+
+            // Crear una presentación nueva es del Dueño o el Vendedor encargado
+            $this->exigirPermisoCatalogo($actor, 'unidad_comercial');
 
             $this->validarPrecio($precio);
 
@@ -389,6 +398,19 @@ class InventarioService
             $this->rechazar(
                 'precio',
                 'Indica un precio de venta inicial válido.'
+            );
+        }
+    }
+
+    // El Vendedor normal solo recibe mercancía de productos que ya existen.
+    // Crear productos, tipos o presentaciones nuevos: Dueño o Vendedor encargado.
+    private function exigirPermisoCatalogo(Usuario $actor, string $campo): void
+    {
+        if (!$actor->puede('gestionar_productos')) {
+            $this->rechazar(
+                $campo,
+                'Solo el Dueño o el encargado pueden crear productos, tipos o presentaciones nuevos. '
+                . 'Elige uno que ya exista o pídeles que lo registren.'
             );
         }
     }

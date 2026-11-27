@@ -406,6 +406,16 @@
 
                             <td>
 
+                                {{-- Ajuste de inventario (RF-008): merma o conteo --}}
+                                <button type="button"
+                                        class="cat-primary cat-btn-ajustar"
+                                        data-ajustar
+                                        data-id="{{ $r->id_inventario }}"
+                                        data-nombre="{{ $r->nombre_producto }} {{ $r->nombre_tipo }} ({{ $r->unidad_comercial }})"
+                                        data-stock="{{ (int) $r->stock_actual }}">
+                                    <i class="fas fa-scale-balanced"></i> Ajustar
+                                </button>
+
                                 <a class="cat-secondary"
                                    href="{{ route('catalogos.index', [
                                        'tipo' => 'productos',
@@ -843,6 +853,7 @@
 @if($esInventario)
 
     @include('catalogos.registro-producto')
+    @include('catalogos.ajuste-inventario')
 
 @else
 

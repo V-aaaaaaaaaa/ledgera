@@ -9,7 +9,7 @@
     'Venta': 'fa-cart-shopping', 'Venta anulada': 'fa-ban', 'Abono': 'fa-hand-holding-dollar',
     'Egreso': 'fa-money-bill-transfer', 'Entrada de mercancía': 'fa-truck-ramp-box',
     'Ajuste de inventario': 'fa-boxes-stacked', 'Apertura de caja': 'fa-lock-open',
-    'Cierre de caja': 'fa-cash-register', 'Cambio': 'fa-pen-to-square', 'Ingreso': 'fa-right-to-bracket'
+    'Cierre de caja': 'fa-cash-register', 'Cierre del puesto': 'fa-store', 'Cambio': 'fa-pen-to-square', 'Ingreso': 'fa-right-to-bracket'
   };
 
   let pagina = 1;
