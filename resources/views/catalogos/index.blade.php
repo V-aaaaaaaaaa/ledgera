@@ -247,6 +247,10 @@
 
 {{-- Modal de registro --}}
 
+@if($tipo === 'productos')
+    @include('catalogos.registro-producto')
+@else
+
 <dialog id="crear" class="cat-modal">
 
     <form method="POST"
@@ -310,6 +314,9 @@
 
     </form>
 </dialog>
+
+@endif
+
 
 {{-- Modales de edición --}}
 

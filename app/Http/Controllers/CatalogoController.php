@@ -6,6 +6,8 @@ use App\Models\Auditoria;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class CatalogoController extends Controller
 {
@@ -135,6 +137,13 @@ class CatalogoController extends Controller
         // =================================================
         // RETORNAR LA VISTA
         // =================================================
+        $proveedores = $tipo === 'productos'
+            ? DB::table('proveedores')
+                ->where('id_puesto', $puesto)
+                ->where('estado', 'Activo')
+                ->orderBy('nombre_razon_social')
+                ->get()
+            : collect();
 
         return view('catalogos.index', [
             'tipo' => $tipo,
@@ -144,6 +153,7 @@ class CatalogoController extends Controller
             'activos' => $activos,
             'saldoTotal' => $saldos->sum(),
             'esDueno' => $request->user()->rol === 'Dueno',
+            'proveedores' => $proveedores,
         ]);
     }
 
@@ -153,6 +163,10 @@ class CatalogoController extends Controller
 
     public function store(Request $request, string $tipo)
     {
+        if ($tipo === 'productos') {
+            return $this->registrarProducto($request);
+        }
+
         $cfg = $this->configuracion($tipo);
         $puesto = $request->user()->id_puesto;
 
@@ -189,6 +203,162 @@ class CatalogoController extends Controller
             'success',
             $cfg['singular'] . ' registrado correctamente.'
         );
+    }
+
+    // =====================================================
+    // REGISTRAR PRODUCTO E INGRESO INICIAL DE MERCANCÍA
+    // =====================================================
+
+    private function registrarProducto(Request $request)
+    {
+        $actor = $request->user();
+        $puesto = $actor->id_puesto;
+
+        abort_unless(in_array($actor->rol, ['Dueno', 'Vendedor'], true) && $puesto, 403);
+
+        // Normalizar nombres antes de validar duplicados.
+        if (is_string($request->input('nombre'))) {
+            $request->merge([
+                'nombre' => preg_replace('/\s+/u', ' ', trim($request->input('nombre'))),
+            ]);
+        }
+
+        $calidades = $request->input('calidades');
+        if (is_array($calidades)) {
+            foreach ($calidades as &$calidad) {
+                if (is_array($calidad) && is_string($calidad['nombre'] ?? null)) {
+                    $calidad['nombre'] = preg_replace('/\s+/u', ' ', trim($calidad['nombre']));
+                }
+            }
+            unset($calidad);
+            $request->merge(['calidades' => $calidades]);
+        }
+
+        $v = $request->validateWithBag('producto', [
+            'nombre' => [
+                'required', 'string', 'min:2', 'max:100',
+                'regex:/\p{L}/u',
+                "regex:/^[\p{L}\p{M}\p{N} .,'&()\/\-]+$/u",
+            ],
+            'unidad_comercial' => ['required', 'in:Bulto,Roa,Canastilla,Canasta'],
+            'descripcion' => ['nullable', 'string', 'max:1000'],
+            'id_proveedor' => ['required', 'integer', 'min:1'],
+            'fecha_entrada' => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
+            'documento_soporte' => ['required', 'string', 'max:50'],
+            'calidades' => ['required', 'array', 'min:1', 'max:20'],
+            'calidades.*' => ['required', 'array:nombre,cantidad,costo,precio'],
+            'calidades.*.nombre' => ['required', 'string', 'max:100', 'distinct:ignore_case'],
+            'calidades.*.cantidad' => ['required', 'integer', 'min:1', 'max:1000000'],
+            'calidades.*.costo' => ['required', 'integer', 'min:1', 'max:9999999999'],
+            'calidades.*.precio' => ['required', 'integer', 'min:1', 'max:9999999999'],
+        ], [
+            'nombre.regex' => 'El nombre del producto contiene caracteres no permitidos.',
+
+            'calidades.*.nombre.distinct' =>
+                'Los tipos del producto no pueden repetirse.',
+
+                'documento_soporte.required' =>
+                'Ingresa un documento o genera una referencia interna.',
+
+                'calidades.required' =>
+                'Debes registrar al menos un tipo de producto.',
+
+                'calidades.*.nombre.required' =>
+                'Escribe el nombre del tipo de producto.',
+
+
+            'calidades.*.cantidad.min' => 'La cantidad recibida debe ser mayor que cero.',
+            'calidades.*.costo.min' => 'El costo unitario debe ser mayor que cero.',
+            'calidades.*.precio.min' => 'El precio de venta debe ser mayor que cero.',
+            'fecha_entrada.before_or_equal' => 'La fecha de ingreso no puede ser futura.',
+        ]);
+
+        // Pesos enteros; el total se calcula en servidor, nunca desde el navegador.
+        // DECIMAL(12,2) admite hasta 9.999.999.999,99 COP.
+        $total = 0;
+        foreach ($v['calidades'] as $calidad) {
+            $total += (int) $calidad['cantidad'] * (int) $calidad['costo'];
+            if ($total > 9999999999) {
+                return back()->withInput()->withErrors([
+                    'total' => 'El valor de la compra supera el máximo permitido.',
+                ], 'producto');
+            }
+        }
+
+        try {
+            DB::transaction(function () use ($v, $actor, $puesto, $total) {
+                // El proveedor debe estar activo y pertenecer al mismo puesto.
+                $proveedor = DB::table('proveedores')
+                    ->where('id_proveedor', $v['id_proveedor'])
+                    ->where('id_puesto', $puesto)
+                    ->where('estado', 'Activo')
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$proveedor) {
+                    throw ValidationException::withMessages([
+                        'id_proveedor' => 'El proveedor no está disponible en tu puesto.',
+                    ])->errorBag('producto');
+                }
+
+                $idProducto = DB::table('productos')->insertGetId([
+                    'id_puesto' => $puesto,
+                    'nombre_producto' => $v['nombre'],
+                    'unidad_comercial' => $v['unidad_comercial'],
+                    'descripcion' => $v['descripcion'] ?? null,
+                    'estado' => 'Activo',
+                ]);
+
+                $idEntrada = DB::table('entradas_mercancia')->insertGetId([
+                    'id_puesto' => $puesto,
+                    'id_proveedor' => $proveedor->id_proveedor,
+                    'id_usuario' => $actor->id_usuario,
+                    'documento_soporte' => $v['documento_soporte'],
+                    // MVP: valor acordado igual al total calculado; compra pendiente de pago.
+                    'valor_acordado' => $total,
+                    'fecha_entrada' => $v['fecha_entrada'] . ' ' . now()->format('H:i:s'),
+                ]);
+
+                foreach ($v['calidades'] as $calidad) {
+                    $idInventario = DB::table('inventario_calidades')->insertGetId([
+                        'id_producto' => $idProducto,
+                        'calidad' => $calidad['nombre'],
+                        'stock_actual' => $calidad['cantidad'],
+                        'stock_minimo' => 0,
+                        'precio_venta_diario' => $calidad['precio'],
+                    ]);
+
+                    DB::table('detalle_entrada')->insert([
+                        'id_entrada' => $idEntrada,
+                        'id_inventario' => $idInventario,
+                        'cantidad_recibida' => $calidad['cantidad'],
+                        'costo_unitario' => $calidad['costo'],
+                    ]);
+                }
+
+                Auditoria::registrar(
+                    'PRODUCTO_CREADO', $idProducto, $puesto,
+                    'Registro de producto con inventario inicial',
+                    $actor->id_usuario, 'productos'
+                );
+
+                Auditoria::registrar(
+                    'ENTRADA_REGISTRADA', $idEntrada, $puesto,
+                    'Entrada inicial de mercancía',
+                    $actor->id_usuario, 'entradas_mercancia'
+                );
+            });
+        } catch (QueryException $e) {
+            if ((int) ($e->errorInfo[1] ?? 0) === 1062) {
+                return back()->withInput()->withErrors([
+                    'duplicado' => 'El producto, calidad o documento ya existe.',
+                ], 'producto');
+            }
+
+            throw $e;
+        }
+
+        return back()->with('success', 'Producto y mercancía registrados correctamente.');
     }
 
     // =====================================================
@@ -420,7 +590,7 @@ class CatalogoController extends Controller
             'nombre.regex' => 'El nombre contiene caracteres no permitidos.',
             'nombre.min' =>'El nombre debe contener al menos dos caracteres.',
         ]);
-            
+
 
         // Preparar datos para MySQL
         $datos = [
