@@ -3,53 +3,45 @@
 namespace App\Http\Controllers;
 
 use App\Models\Auditoria;
+use App\Services\InventarioService;
+use Illuminate\Database\QueryException;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Database\QueryException;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class EntradaMercanciaController extends Controller
 {
-    // =====================================================
-    // CONSULTAR PRODUCTOS, TIPOS Y PROVEEDORES SUGERIDOS
-    // =====================================================
+    private const MAXIMO = 9999999999;
+    private const MAX_LINEAS = 150;
 
-    public function datos(Request $request)
+    public function __construct(
+        private InventarioService $inventario
+    ) {}
+
+    // Catálogo, tipos, presentaciones y proveedor sugerido.
+
+    public function datos(Request $request): JsonResponse
     {
-        $puesto = $request->user()->id_puesto;
+        $actor = $request->user();
 
-        abort_unless($puesto, 403);
+        abort_unless($actor->id_puesto && in_array(
+            $actor->rol, ['Dueno', 'Vendedor'], true
+        ), 403);
 
         $productos = DB::table('productos as p')
-            ->where('p.id_puesto', $puesto)
+            ->where('p.id_puesto', $actor->id_puesto)
             ->where('p.estado', 'Activo')
-            ->select(
-                'p.id_producto',
-                'p.nombre_producto',
-                'p.unidad_comercial',
-                'p.descripcion'
-            )
+            ->select('p.id_producto', 'p.nombre_producto', 'p.descripcion')
             ->selectSub(
                 DB::table('detalle_entrada as d')
-                    ->join(
-                        'inventario_calidades as ic',
-                        'ic.id_inventario',
-                        '=',
-                        'd.id_inventario'
-                    )
-                    ->join(
-                        'entradas_mercancia as e',
-                        'e.id_entrada',
-                        '=',
-                        'd.id_entrada'
-                    )
-                    ->join(
-                        'proveedores as pr',
-                        'pr.id_proveedor',
-                        '=',
-                        'e.id_proveedor'
-                    )
-                    ->whereColumn('ic.id_producto', 'p.id_producto')
+                    ->join('inventario_calidades as i', 'i.id_inventario', '=', 'd.id_inventario')
+                    ->join('tipos_producto as t', 't.id_tipo', '=', 'i.id_tipo')
+                    ->join('entradas_mercancia as e', 'e.id_entrada', '=', 'd.id_entrada')
+                    ->join('proveedores as pr', 'pr.id_proveedor', '=', 'e.id_proveedor')
+                    ->whereColumn('t.id_producto', 'p.id_producto')
                     ->whereColumn('e.id_puesto', 'p.id_puesto')
                     ->whereColumn('pr.id_puesto', 'p.id_puesto')
                     ->where('pr.estado', 'Activo')
@@ -62,65 +54,70 @@ class EntradaMercanciaController extends Controller
             ->orderBy('p.nombre_producto')
             ->get();
 
-        $tipos = DB::table('inventario_calidades')
-            ->whereIn(
-                'id_producto',
-                $productos->pluck('id_producto')
-            )
-            ->orderBy('calidad')
+        $tipos = DB::table('tipos_producto')
+            ->whereIn('id_producto', $productos->pluck('id_producto'))
+            ->orderBy('nombre_tipo')
+            ->get(['id_tipo', 'id_producto', 'nombre_tipo']);
+
+        $presentaciones = DB::table('inventario_calidades')
+            ->whereIn('id_tipo', $tipos->pluck('id_tipo'))
+            ->orderBy('unidad_comercial')
             ->get([
                 'id_inventario',
-                'id_producto',
-                'calidad',
+                'id_tipo',
+                'unidad_comercial',
                 'stock_actual',
-                'precio_venta_diario',
+                'precio_venta_diario'
             ])
-            ->groupBy('id_producto');
+            ->groupBy('id_tipo');
+
+        $tiposPorProducto = $tipos->groupBy('id_producto');
 
         foreach ($productos as $producto) {
 
-            $producto->tipos = $tipos
+            $producto->tipos = $tiposPorProducto
                 ->get($producto->id_producto, collect())
                 ->map(fn ($tipo) => [
-                    'id' => $tipo->id_inventario,
-                    'nombre' => $tipo->calidad,
-                    'stock' => $tipo->stock_actual,
-                    'precio' => $tipo->precio_venta_diario,
-                ])
-                ->values();
+
+                    'id' => $tipo->id_tipo,
+                    'nombre' => $tipo->nombre_tipo,
+
+                    'presentaciones' => $presentaciones
+                        ->get($tipo->id_tipo, collect())
+                        ->map(fn ($p) => [
+
+                            'id' => $p->id_inventario,
+                            'unidad_comercial' => $p->unidad_comercial,
+                            'stock' => $p->stock_actual,
+                            'precio' => $p->precio_venta_diario,
+
+                        ])->values(),
+
+                ])->values();
         }
 
         return response()->json([
             'ok' => true,
             'productos' => $productos,
+            'unidades' => InventarioService::UNIDADES,
         ]);
     }
 
-    // =====================================================
-    // REGISTRAR ENTRADA DE MERCANCÍA
-    // =====================================================
+    // Registrar entrada de mercancía.
 
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
         $actor = $request->user();
-        $puesto = $actor->id_puesto;
 
-        abort_unless(
-            $puesto && in_array(
-                $actor->rol,
-                ['Dueno', 'Vendedor'],
-                true
-            ),
-            403
-        );
+        abort_unless($actor->id_puesto && in_array(
+            $actor->rol, ['Dueno', 'Vendedor'], true
+        ), 403);
 
-        // Validar la información recibida.
+        // 1. Validar información.
 
         $v = $request->validateWithBag('producto', [
 
-            'id_proveedor' => [
-                'required', 'integer', 'min:1'
-            ],
+            'id_proveedor' => ['required', 'integer', 'min:1'],
 
             'fecha_entrada' => [
                 'required',
@@ -132,13 +129,18 @@ class EntradaMercanciaController extends Controller
                 'required', 'string', 'max:50'
             ],
 
+            'valor_acordado' => [
+                'nullable', 'integer', 'min:1',
+                'max:' . self::MAXIMO
+            ],
+
             'productos' => [
                 'required', 'array', 'min:1', 'max:20'
             ],
 
             'productos.*' => [
                 'required',
-                'array:id_producto,nombre,unidad_comercial,descripcion,calidades'
+                'array:id_producto,nombre,descripcion,calidades'
             ],
 
             'productos.*.id_producto' => [
@@ -146,13 +148,7 @@ class EntradaMercanciaController extends Controller
             ],
 
             'productos.*.nombre' => [
-                'nullable', 'string', 'min:2', 'max:100',
-                'regex:/\p{L}/u',
-                "regex:/^[\p{L}\p{M}\p{N} .,'&()\/\-]+$/u"
-            ],
-
-            'productos.*.unidad_comercial' => [
-                'required', 'in:Bulto,Roa,Canastilla,Canasta'
+                'nullable', 'string', 'max:100'
             ],
 
             'productos.*.descripcion' => [
@@ -164,11 +160,17 @@ class EntradaMercanciaController extends Controller
             ],
 
             'productos.*.calidades.*' => [
-                'required', 'array:nombre,cantidad,costo,precio'
+                'required',
+                'array:nombre,unidad_comercial,cantidad,costo,precio'
             ],
 
             'productos.*.calidades.*.nombre' => [
                 'required', 'string', 'max:100'
+            ],
+
+            'productos.*.calidades.*.unidad_comercial' => [
+                'required',
+                Rule::in(InventarioService::UNIDADES)
             ],
 
             'productos.*.calidades.*.cantidad' => [
@@ -176,14 +178,20 @@ class EntradaMercanciaController extends Controller
             ],
 
             'productos.*.calidades.*.costo' => [
-                'required', 'integer', 'min:1', 'max:9999999999'
+                'required', 'integer', 'min:1',
+                'max:' . self::MAXIMO
             ],
 
             'productos.*.calidades.*.precio' => [
-                'nullable', 'integer', 'min:1', 'max:9999999999'
+                'nullable', 'integer', 'min:1',
+                'max:' . self::MAXIMO
             ],
 
+            // Se habilitará mediante el servicio de egresos.
+            'pago_inmediato' => ['prohibited'],
+
         ], [
+
             'documento_soporte.required' =>
                 'Ingresa una factura o genera una referencia interna.',
 
@@ -191,10 +199,10 @@ class EntradaMercanciaController extends Controller
                 'Agrega al menos un producto.',
 
             'productos.*.calidades.required' =>
-                'Agrega al menos un tipo de producto.',
+                'Agrega al menos una presentación.',
 
-            'productos.*.calidades.*.nombre.required' =>
-                'Escribe o selecciona el tipo de producto.',
+            'productos.*.calidades.*.unidad_comercial.required' =>
+                'Selecciona la unidad comercial.',
 
             'productos.*.calidades.*.cantidad.min' =>
                 'La cantidad debe ser mayor que cero.',
@@ -203,47 +211,62 @@ class EntradaMercanciaController extends Controller
                 'El costo debe ser mayor que cero.',
 
             'fecha_entrada.before_or_equal' =>
-                'La fecha de ingreso no puede ser futura.',
+                'La fecha no puede ser futura.',
+
+            'pago_inmediato.prohibited' =>
+                'Registra el pago desde Egresos.',
         ]);
 
-        // =================================================
-        // CALCULAR EL VALOR TOTAL DE LA COMPRA
-        // =================================================
+        // 2. Calcular total y valor acordado.
 
         $total = 0;
+        $lineas = 0;
 
         foreach ($v['productos'] as $producto) {
 
             foreach ($producto['calidades'] as $tipo) {
 
+                $lineas++;
+
                 $total += (int) $tipo['cantidad']
                     * (int) $tipo['costo'];
 
-                if ($total > 9999999999) {
-
+                if (
+                    $lineas > self::MAX_LINEAS ||
+                    $total > self::MAXIMO
+                ) {
                     $this->rechazar(
                         'total',
-                        'El valor de la compra supera el máximo permitido.'
+                        'La compra supera el máximo de líneas o valor permitido.'
                     );
                 }
             }
         }
 
-        // =================================================
-        // TRANSACCIÓN
-        // =================================================
+        $acordado = (int) ($v['valor_acordado'] ?? $total);
+
+        $documento = trim($v['documento_soporte']);
+
+        if ($documento === '') {
+            $this->rechazar(
+                'documento_soporte',
+                'Ingresa un documento válido.'
+            );
+        }
+
+        // 3. Registrar la operación de forma atómica.
 
         try {
 
             DB::transaction(function () use (
-                $v, $actor, $puesto, $total
+                $actor, $v, $total, $acordado, $documento
             ) {
 
-                // Verificar proveedor.
+                $this->inventario->bloquearPuesto($actor);
 
                 $proveedor = DB::table('proveedores')
                     ->where('id_proveedor', $v['id_proveedor'])
-                    ->where('id_puesto', $puesto)
+                    ->where('id_puesto', $actor->id_puesto)
                     ->where('estado', 'Activo')
                     ->lockForUpdate()
                     ->first();
@@ -252,101 +275,67 @@ class EntradaMercanciaController extends Controller
 
                     $this->rechazar(
                         'id_proveedor',
-                        'El proveedor no está disponible.'
+                        'El proveedor no está disponible en tu puesto.'
                     );
                 }
 
-                // Crear una sola entrada para toda la compra.
+                // Crear encabezado de la compra.
 
                 $idEntrada = DB::table('entradas_mercancia')
                     ->insertGetId([
 
-                        'id_puesto' => $puesto,
+                        'id_puesto' => $actor->id_puesto,
 
-                        'id_proveedor' =>
-                            $proveedor->id_proveedor,
+                        'id_proveedor' => $proveedor->id_proveedor,
 
-                        'id_usuario' =>
-                            $actor->id_usuario,
+                        'id_usuario' => $actor->id_usuario,
 
-                        'documento_soporte' =>
-                            trim($v['documento_soporte']),
+                        'documento_soporte' => $documento,
 
-                        'valor_acordado' => $total,
+                        'valor_acordado' => $acordado,
 
-                        'fecha_entrada' =>
-                            $v['fecha_entrada']
-                            . ' '
-                            . now()->format('H:i:s'),
+                        'fecha_entrada' => $v['fecha_entrada']
+                            . ' ' . now()->format('H:i:s'),
                     ]);
 
                 $productosProcesados = [];
+                $presentacionesProcesadas = [];
 
                 foreach ($v['productos'] as $datos) {
 
-                    // Obtener producto existente o crear uno nuevo.
+                    $producto = $this->inventario
+                        ->obtenerProducto($actor, $datos);
 
-                    $idProducto = $this->obtenerProducto(
-                        $datos,
-                        $puesto,
-                        $actor->id_usuario
-                    );
+                    $idProducto = $producto['id'];
 
                     if (isset($productosProcesados[$idProducto])) {
 
                         $this->rechazar(
                             'productos',
-                            'No repitas un producto. Agrupa sus tipos en el mismo registro.'
+                            'Agrupa las presentaciones del mismo producto en una sola tarjeta.'
                         );
                     }
 
                     $productosProcesados[$idProducto] = true;
 
-                    $tiposProcesados = [];
-
                     foreach ($datos['calidades'] as $tipo) {
 
-                        $idInventario = $this->obtenerTipo(
-                            $idProducto,
-                            $tipo
-                        );
+                        // Delegar el incremento de existencias.
 
-                        if (isset($tiposProcesados[$idInventario])) {
+                        $idInventario = $this->inventario
+                            ->recibir($actor, $idProducto, $tipo);
+
+                        if (isset($presentacionesProcesadas[$idInventario])) {
 
                             $this->rechazar(
                                 'tipos',
-                                'No repitas un tipo dentro del mismo producto.'
+                                'No repitas la misma combinación de tipo y unidad comercial.'
                             );
                         }
 
-                        $tiposProcesados[$idInventario] = true;
+                        $presentacionesProcesadas[$idInventario] = true;
 
-                        // Acumular las existencias.
-
-                        $inventario = DB::table('inventario_calidades')
-                            ->where('id_inventario', $idInventario)
-                            ->lockForUpdate()
-                            ->first();
-
-                        $nuevoStock = (int) $inventario->stock_actual
-                            + (int) $tipo['cantidad'];
-
-                        if ($nuevoStock > 2147483647) {
-
-                            $this->rechazar(
-                                'cantidad',
-                                'La cantidad supera la capacidad del inventario.'
-                            );
-                        }
-
-                        DB::table('inventario_calidades')
-                            ->where('id_inventario', $idInventario)
-                            ->increment(
-                                'stock_actual',
-                                (int) $tipo['cantidad']
-                            );
-
-                        // Conservar el costo histórico de la compra.
+                        // Registrar el costo histórico.
 
                         DB::table('detalle_entrada')->insert([
 
@@ -354,24 +343,32 @@ class EntradaMercanciaController extends Controller
 
                             'id_inventario' => $idInventario,
 
-                            'cantidad_recibida' =>
-                                $tipo['cantidad'],
+                            'cantidad_recibida' => $tipo['cantidad'],
 
-                            'costo_unitario' =>
-                                $tipo['costo'],
+                            'costo_unitario' => $tipo['costo'],
                         ]);
                     }
                 }
 
-                // Registrar auditoría.
+                // Registrar trazabilidad.
 
                 Auditoria::registrar(
                     'ENTRADA_REGISTRADA',
                     $idEntrada,
-                    $puesto,
-                    'Entrada de mercancía por COP ' . $total,
+                    $actor->id_puesto,
+                    'Entrada de mercancía: ' . $documento,
                     $actor->id_usuario,
-                    'entradas_mercancia'
+                    'entradas_mercancia',
+                    null,
+                    [
+                        'id_proveedor' => $proveedor->id_proveedor,
+                        'documento_soporte' => $documento,
+                        'total_calculado' => $total,
+                        'valor_acordado' => $acordado,
+                        'presentaciones' => array_keys(
+                            $presentacionesProcesadas
+                        ),
+                    ]
                 );
 
             }, 3);
@@ -380,11 +377,17 @@ class EntradaMercanciaController extends Controller
 
             if ((int) ($e->errorInfo[1] ?? 0) === 1062) {
 
+                $mensaje = str_contains(
+                    (string) ($e->errorInfo[2] ?? ''),
+                    'uk_entrada_doc'
+                )
+                    ? 'Este documento ya está registrado para el proveedor.'
+                    : 'Existe un registro duplicado. Recarga el catálogo y verifica los datos.';
+
                 return back()
                     ->withInput()
                     ->withErrors([
-                        'duplicado' =>
-                            'El documento, producto o tipo ya existe. Verifica los datos.'
+                        'duplicado' => $mensaje,
                     ], 'producto');
             }
 
@@ -393,185 +396,7 @@ class EntradaMercanciaController extends Controller
 
         return back()->with(
             'success',
-            'Entrada de mercancía registrada. Inventario actualizado correctamente.'
-        );
-    }
-
-    // =====================================================
-    // OBTENER O CREAR PRODUCTO
-    // =====================================================
-
-    private function obtenerProducto(
-        array $datos,
-        int $puesto,
-        int $actor
-    ): int {
-
-        // Caso 1: producto existente.
-
-        if (!empty($datos['id_producto'])) {
-
-            $producto = DB::table('productos')
-                ->where('id_producto', $datos['id_producto'])
-                ->where('id_puesto', $puesto)
-                ->lockForUpdate()
-                ->first();
-
-            if (!$producto || $producto->estado !== 'Activo') {
-
-                $this->rechazar(
-                    'producto',
-                    'El producto seleccionado no está disponible.'
-                );
-            }
-
-            // Completar la unidad de productos antiguos.
-
-            if ($producto->unidad_comercial === null) {
-
-                DB::table('productos')
-                    ->where('id_producto', $producto->id_producto)
-                    ->update([
-                        'unidad_comercial' =>
-                            $datos['unidad_comercial']
-                    ]);
-
-            } elseif (
-                $producto->unidad_comercial
-                !== $datos['unidad_comercial']
-            ) {
-
-                $this->rechazar(
-                    'unidad_comercial',
-                    'La unidad comercial no coincide con la del producto existente.'
-                );
-            }
-
-            return (int) $producto->id_producto;
-        }
-
-        // Caso 2: producto completamente nuevo.
-
-        $nombre = $this->normalizar(
-            $datos['nombre'] ?? ''
-        );
-
-        if (mb_strlen($nombre) < 2) {
-
-            $this->rechazar(
-                'nombre',
-                'Escribe el nombre del nuevo producto.'
-            );
-        }
-
-        $existente = DB::table('productos')
-            ->where('id_puesto', $puesto)
-            ->where('nombre_producto', $nombre)
-            ->exists();
-
-        if ($existente) {
-
-            $this->rechazar(
-                'nombre',
-                'Este producto ya existe. Selecciónalo desde el catálogo.'
-            );
-        }
-
-        $idProducto = DB::table('productos')->insertGetId([
-
-            'id_puesto' => $puesto,
-
-            'nombre_producto' => $nombre,
-
-            'unidad_comercial' =>
-                $datos['unidad_comercial'],
-
-            'descripcion' =>
-                $datos['descripcion'] ?? null,
-
-            'estado' => 'Activo',
-        ]);
-
-        Auditoria::registrar(
-            'PRODUCTO_CREADO',
-            $idProducto,
-            $puesto,
-            'Producto creado desde entrada de mercancía',
-            $actor,
-            'productos'
-        );
-
-        return (int) $idProducto;
-    }
-
-    // =====================================================
-    // OBTENER O CREAR TIPO DE PRODUCTO
-    // =====================================================
-
-    private function obtenerTipo(
-        int $idProducto,
-        array $datos
-    ): int {
-
-        $nombre = $this->normalizar($datos['nombre']);
-
-        if ($nombre === '') {
-
-            $this->rechazar(
-                'tipo',
-                'Escribe el nombre del tipo.'
-            );
-        }
-
-        $tipo = DB::table('inventario_calidades')
-            ->where('id_producto', $idProducto)
-            ->where('calidad', $nombre)
-            ->lockForUpdate()
-            ->first();
-
-        // Si existe, conservar el precio de venta actual.
-
-        if ($tipo) {
-
-            return (int) $tipo->id_inventario;
-        }
-
-        // Si no existe, crear el nuevo tipo.
-
-        if (empty($datos['precio'])) {
-
-            $this->rechazar(
-                'precio',
-                'Indica el precio de venta para el nuevo tipo.'
-            );
-        }
-
-        return (int) DB::table('inventario_calidades')
-            ->insertGetId([
-
-                'id_producto' => $idProducto,
-
-                'calidad' => $nombre,
-
-                'stock_actual' => 0,
-
-                'stock_minimo' => 0,
-
-                'precio_venta_diario' =>
-                    $datos['precio'],
-            ]);
-    }
-
-    // =====================================================
-    // MÉTODOS AUXILIARES
-    // =====================================================
-
-    private function normalizar(string $texto): string
-    {
-        return preg_replace(
-            '/\s+/u',
-            ' ',
-            trim($texto)
+            'Entrada registrada. Inventario actualizado y obligación pendiente de pago.'
         );
     }
 

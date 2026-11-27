@@ -3,206 +3,331 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\RespondeJson;
-use App\Models\Auditoria;
-use App\Models\Puesto;
+use App\Services\InventarioService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
-/**
- * Configuración inicial del puesto (primer ingreso del Dueño).
- * El Dueño registra qué productos vende y sus calidades.
- * En LEDGERA "calidad" = variedad del producto (ej.: Tomate -> Chonto, Larga vida).
- * Cada puesto escribe solo lo suyo: no hay una lista fija para todos.
- * Se puede omitir ("Lo hago después"); se vuelve a mostrar en el siguiente ingreso
- * mientras el puesto no tenga productos.
- */
 class ConfiguracionInicialController extends Controller
 {
     use RespondeJson;
 
     private const MAX_PRODUCTOS = 30;
-    private const MAX_CALIDADES = 20;
-    private const SIN_CALIDAD = 'Única';   // si el producto no maneja calidades
-    private const PATRON = '/^[\pL\pN .,&#-]+$/u';
+    private const MAX_TIPOS = 20;
+    private const SIN_TIPO = 'Única';
+
+    public function __construct(
+        private InventarioService $inventario
+    ) {}
+
+    // =====================================================
+    // MOSTRAR CONFIGURACIÓN INICIAL
+    // =====================================================
 
     public function mostrar(Request $request): View
     {
+        $actor = $request->user();
+
+        abort_unless(
+            $actor->rol === 'Dueno' && $actor->id_puesto,
+            403
+        );
+
         return view('operativo.configuracion-inicial', [
-            'existentes' => $this->productosDelPuesto((int) $request->user()->id_puesto),
+            'existentes' => $this->productosDelPuesto(
+                (int) $actor->id_puesto
+            ),
         ]);
     }
+
+    // =====================================================
+    // GUARDAR CATÁLOGO INICIAL
+    // =====================================================
 
     public function guardar(Request $request): JsonResponse
     {
         $actor = $request->user();
+
+        abort_unless(
+            $actor->rol === 'Dueno' && $actor->id_puesto,
+            403
+        );
+
         $productos = $this->validar($request);
 
-        $resumen = DB::transaction(function () use ($actor, $productos) {
-            // Bloquea el puesto: si el Dueño guarda desde dos pantallas a la vez, no se duplica
-            Puesto::lockForUpdate()->findOrFail($actor->id_puesto);
+        try {
 
-            $nuevosProductos = 0;
-            $nuevasCalidades = 0;
+            $resumen = DB::transaction(function () use (
+                $actor,
+                $productos
+            ) {
 
-            foreach ($productos as $p) {
-                // La BD compara sin mayúsculas: "tomate" y "Tomate" son el mismo producto
-                $existente = DB::table('productos')
-                    ->where('id_puesto', $actor->id_puesto)
-                    ->where('nombre_producto', $p['nombre'])
-                    ->first();
+                $this->inventario->bloquearPuesto($actor);
 
-                if ($existente) {
-                    $idProducto = $existente->id_producto;
-                } else {
-                    $idProducto = DB::table('productos')->insertGetId([
-                        'id_puesto' => $actor->id_puesto,
-                        'nombre_producto' => $p['nombre'],
-                        'estado' => 'Activo',
-                    ], 'id_producto');
+                $nuevosProductos = 0;
+                $nuevosTipos = 0;
 
-                    Auditoria::registrar('PRODUCTO_CREADO', $idProducto, $actor->id_puesto,
-                        'Configuración inicial', null, 'productos', null, ['nombre' => $p['nombre']]);
-                    $nuevosProductos++;
-                }
+                foreach ($productos as $datos) {
 
-                // Solo se agregan las calidades que ese producto no tenga todavía
-                $yaTiene = DB::table('inventario_calidades')
-                    ->where('id_producto', $idProducto)
-                    ->pluck('calidad')
-                    ->map(fn ($c) => mb_strtolower($c))
-                    ->all();
+                    $producto = $this->inventario->obtenerProducto(
+                        $actor,
+                        ['nombre' => $datos['nombre']],
+                        true
+                    );
 
-                foreach ($p['calidades'] as $calidad) {
-                    if (in_array(mb_strtolower($calidad), $yaTiene, true)) {
-                        continue;
+                    if ($producto['creado']) {
+                        $nuevosProductos++;
                     }
 
-                    // Stock y precio arrancan en 0: llegan con la entrada de mercancía y el precio del día
-                    $idInventario = DB::table('inventario_calidades')->insertGetId([
-                        'id_producto' => $idProducto,
-                        'calidad' => $calidad,
-                    ], 'id_inventario');
+                    foreach ($datos['calidades'] as $nombreTipo) {
 
-                    Auditoria::registrar('CALIDAD_CREADA', $idInventario, $actor->id_puesto,
-                        'Configuración inicial', null, 'inventario_calidades', null,
-                        ['producto' => $p['nombre'], 'calidad' => $calidad]);
-                    $yaTiene[] = mb_strtolower($calidad);
-                    $nuevasCalidades++;
+                        $tipo = $this->inventario->obtenerTipo(
+                            $actor,
+                            $producto['id'],
+                            $nombreTipo
+                        );
+
+                        if ($tipo['creado']) {
+                            $nuevosTipos++;
+                        }
+                    }
                 }
-            }
 
-            return [$nuevosProductos, $nuevasCalidades];
-        });
+                return [
+                    'productos' => $nuevosProductos,
+                    'tipos' => $nuevosTipos,
+                ];
+
+            }, 3);
+
+        } catch (ValidationException $e) {
+
+            return response()->json([
+                'ok' => false,
+                'mensaje' => collect($e->errors())
+                    ->flatten()
+                    ->first() ?? 'Verifica los datos ingresados.',
+            ], 422);
+        }
 
         $request->session()->forget('configuracion_omitida');
 
         return response()->json([
             'ok' => true,
-            'mensaje' => "Listo: {$resumen[0]} productos y {$resumen[1]} calidades nuevas.",
+
+            'mensaje' =>
+                "Listo: {$resumen['productos']} productos y "
+                . "{$resumen['tipos']} tipos nuevos.",
+
             'destino' => route('dashboard'),
         ]);
     }
 
-    // "Lo hago después": no se vuelve a mostrar hasta el próximo inicio de sesión
+    // =====================================================
+    // OMITIR CONFIGURACIÓN
+    // =====================================================
+
     public function omitir(Request $request): JsonResponse
     {
-        $request->session()->put('configuracion_omitida', true);
+        $actor = $request->user();
 
-        return response()->json(['ok' => true, 'destino' => route('dashboard')]);
+        abort_unless(
+            $actor->rol === 'Dueno' && $actor->id_puesto,
+            403
+        );
+
+        $request->session()->put(
+            'configuracion_omitida',
+            true
+        );
+
+        return response()->json([
+            'ok' => true,
+            'destino' => route('dashboard'),
+        ]);
     }
 
-    // ---------------------------------------------------------------
+    // =====================================================
+    // VALIDAR INFORMACIÓN RECIBIDA
+    // =====================================================
 
-    // Limpia, valida y quita repetidos. Devuelve [['nombre' => ..., 'calidades' => [...]], ...]
     private function validar(Request $request): array
     {
-        $lista = $request->input('productos');
+        $validador = Validator::make($request->all(), [
 
-        if (!is_array($lista) || count($lista) === 0) {
-            $this->abortar('Agrega al menos un producto.', 400);
-        }
-        if (count($lista) > self::MAX_PRODUCTOS) {
-            $this->abortar('Máximo ' . self::MAX_PRODUCTOS . ' productos a la vez.', 400);
+            'productos' => [
+                'required',
+                'array',
+                'min:1',
+                'max:' . self::MAX_PRODUCTOS,
+            ],
+
+            'productos.*' => [
+                'required',
+                'array:nombre,calidades',
+            ],
+
+            'productos.*.nombre' => [
+                'required',
+                'string',
+                'min:2',
+                'max:100',
+            ],
+
+            'productos.*.calidades' => [
+                'nullable',
+                'array',
+                'max:' . self::MAX_TIPOS,
+            ],
+
+            'productos.*.calidades.*' => [
+                'required',
+                'string',
+                'max:100',
+            ],
+
+        ], [
+            'productos.required' =>
+                'Agrega al menos un producto.',
+
+            'productos.max' =>
+                'Puedes registrar máximo 30 productos a la vez.',
+
+            'productos.*.nombre.required' =>
+                'Escribe el nombre de cada producto.',
+
+            'productos.*.nombre.min' =>
+                'El nombre debe tener al menos dos caracteres.',
+
+            'productos.*.calidades.max' =>
+                'Cada producto admite máximo 20 tipos por registro.',
+        ]);
+
+        if ($validador->fails()) {
+
+            $this->abortar(
+                $validador->errors()->first(),
+                400
+            );
         }
 
-        $limpiar = fn ($s) => trim(preg_replace('/\s+/u', ' ', (string) $s));
+        $datos = $validador->validated();
+
         $resultado = [];
 
-        foreach ($lista as $i => $p) {
-            $nombre = $limpiar($p['nombre'] ?? '');
-            $n = $i + 1;
+        foreach ($datos['productos'] as $producto) {
 
-            if ($nombre === '') {
-                $this->abortar("Escribe el nombre del producto #{$n}.", 400);
-            }
-
-            $calidades = array_values(array_filter(array_map($limpiar, (array) ($p['calidades'] ?? []))));
-            if (count($calidades) === 0) {
-                $calidades = [self::SIN_CALIDAD];
-            }
-            if (count($calidades) > self::MAX_CALIDADES) {
-                $this->abortar("\"{$nombre}\" tiene demasiadas calidades (máximo " . self::MAX_CALIDADES . ').', 400);
-            }
-
-            $v = Validator::make(
-                ['nombre' => $nombre, 'calidades' => $calidades],
-                [
-                    'nombre' => ['max:100', 'regex:' . self::PATRON],
-                    'calidades.*' => ['max:100', 'regex:' . self::PATRON],
-                ],
-                [
-                    'nombre.max' => "El nombre del producto #{$n} es muy largo.",
-                    'nombre.regex' => "El producto #{$n} tiene caracteres no permitidos.",
-                    'calidades.*.max' => "Una calidad de \"{$nombre}\" es muy larga.",
-                    'calidades.*.regex' => "Una calidad de \"{$nombre}\" tiene caracteres no permitidos.",
-                ]
+            $nombre = $this->normalizar(
+                $producto['nombre']
             );
 
-            if ($v->fails()) {
-                $this->abortar($v->errors()->first(), 400);
+            $tipos = array_map(
+                fn ($tipo) => $this->normalizar($tipo),
+                $producto['calidades'] ?? []
+            );
+
+            $tipos = array_values(
+                array_filter(
+                    $tipos,
+                    fn ($tipo) => $tipo !== ''
+                )
+            );
+
+            if (!$tipos) {
+                $tipos = [self::SIN_TIPO];
             }
 
-            // Si el mismo producto viene dos veces, se juntan sus calidades
             $clave = mb_strtolower($nombre);
-            $previas = $resultado[$clave]['calidades'] ?? [];
-            $todas = [];
-            foreach (array_merge($previas, $calidades) as $c) {
-                $todas[mb_strtolower($c)] = $this->capitalizar($c);
+
+            $previos = $resultado[$clave]['calidades'] ?? [];
+
+            $unicos = [];
+
+            foreach (array_merge($previos, $tipos) as $tipo) {
+
+                $unicos[mb_strtolower($tipo)] =
+                    $this->capitalizar($tipo);
+            }
+
+            if (count($unicos) > self::MAX_TIPOS) {
+
+                $this->abortar(
+                    "El producto {$nombre} supera el máximo de tipos.",
+                    400
+                );
             }
 
             $resultado[$clave] = [
-                'nombre' => $resultado[$clave]['nombre'] ?? $this->capitalizar($nombre),
-                'calidades' => array_values($todas),
+                'nombre' => $this->capitalizar($nombre),
+                'calidades' => array_values($unicos),
             ];
         }
 
         return array_values($resultado);
     }
 
-    // "tomate" -> "Tomate" (solo la primera letra; respeta lo demás)
-    private function capitalizar(string $s): string
-    {
-        return mb_strtoupper(mb_substr($s, 0, 1)) . mb_substr($s, 1);
-    }
+    // =====================================================
+    // CONSULTAR CATÁLOGO DEL PUESTO
+    // =====================================================
 
     private function productosDelPuesto(int $idPuesto): array
     {
         return DB::table('productos as p')
-            ->leftJoin('inventario_calidades as c', 'c.id_producto', '=', 'p.id_producto')
+
+            ->leftJoin(
+                'tipos_producto as t',
+                't.id_producto',
+                '=',
+                'p.id_producto'
+            )
+
             ->where('p.id_puesto', $idPuesto)
             ->where('p.estado', 'Activo')
+
             ->orderBy('p.nombre_producto')
-            ->orderBy('c.calidad')
-            ->get(['p.nombre_producto', 'c.calidad'])
-            ->groupBy('nombre_producto')
-            ->map(fn ($filas, $nombre) => [
-                'nombre' => $nombre,
-                'calidades' => $filas->pluck('calidad')->filter()->values()->all(),
+            ->orderBy('t.nombre_tipo')
+
+            ->get([
+                'p.nombre_producto',
+                't.nombre_tipo',
             ])
+
+            ->groupBy('nombre_producto')
+
+            ->map(fn ($filas, $nombre) => [
+
+                'nombre' => $nombre,
+
+                'calidades' => $filas
+                    ->pluck('nombre_tipo')
+                    ->filter()
+                    ->values()
+                    ->all(),
+
+            ])
+
             ->values()
             ->all();
+    }
+
+    // =====================================================
+    // FUNCIONES AUXILIARES
+    // =====================================================
+
+    private function normalizar(string $texto): string
+    {
+        return trim(
+            preg_replace('/\s+/u', ' ', $texto) ?? ''
+        );
+    }
+
+    private function capitalizar(string $texto): string
+    {
+        return mb_strtoupper(
+            mb_substr($texto, 0, 1)
+        ) . mb_substr($texto, 1);
     }
 }

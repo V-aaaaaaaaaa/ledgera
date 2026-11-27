@@ -1,9 +1,7 @@
-
 @extends('layouts.operativo')
 
 @section('titulo', 'LEDGERA - ' . $cfg['titulo'])
 @section('tema', 'tema-inventario')
-
 
 @push('estilos')
 
@@ -18,9 +16,23 @@
 
 @endpush
 
-
 @section('operativo-contenido')
 
+@php
+    $esInventario = $tipo === 'productos';
+
+    $buscar = request()->query('buscar', '');
+    $buscar = is_string($buscar) ? $buscar : '';
+
+    $estado = request()->query('estado');
+
+    $moneda = static fn ($valor) =>
+        '$' . number_format((float) $valor, 2, ',', '.');
+
+    $pagina = !$esInventario || $pestana === 'catalogo'
+        ? $registros
+        : ($pestana === 'inventario' ? $existencias : $entradas);
+@endphp
 
 <header class="cat-header">
 
@@ -28,9 +40,8 @@
        class="cat-back"
        aria-label="Volver al dashboard">
 
-        <i class="fas fa-arrow-left"></i>
+        <i class="fas fa-arrow-left" aria-hidden="true"></i>
         Volver
-
     </a>
 
     <strong>Led<span class="logo-acento">gera</span></strong>
@@ -39,345 +50,970 @@
 
         <span>{{ auth()->user()->nombre_completo }}</span>
 
-        <i class="fas fa-user-circle"></i>
-
+        <i class="fas fa-user-circle" aria-hidden="true"></i>
     </div>
 
 </header>
 
-
 <main class="cat-main">
 
+    {{-- ENCABEZADO DEL MÓDULO --}}
+
     <div class="cat-heading">
+
         <div>
+
             <small>Gestión comercial</small>
+
             <h1>{{ $cfg['titulo'] }}</h1>
-            <p>Consulta y administra los registros de tu puesto.</p>
+
+            <p>
+                {{ $esInventario
+                    ? 'Consulta existencias, compras y catálogo de tu puesto.'
+                    : 'Consulta y administra los clientes de tu puesto.' }}
+            </p>
+
         </div>
 
-        <button class="cat-primary"
+        <button type="button"
+                class="cat-primary"
                 onclick="document.getElementById('crear').showModal()">
-            + Registrar
+
+            {{ $esInventario ? '+ Nueva entrada' : '+ Registrar cliente' }}
         </button>
+
     </div>
 
+    {{-- NAVEGACIÓN --}}
 
+    @if($esInventario)
+
+        <nav class="cat-nav" aria-label="Inventario y compras">
+
+            @foreach([
+                'inventario' => 'Inventario',
+                'entradas' => 'Entradas',
+                'catalogo' => 'Catálogo'
+            ] as $clave => $etiqueta)
+
+                <a href="{{ route('catalogos.index', [
+                        'tipo' => $tipo,
+                        'pestana' => $clave
+                    ]) }}"
+
+                   @class(['selected' => $pestana === $clave])
+
+                   @if($pestana === $clave)
+                       aria-current="page"
+                   @endif>
+
+                    {{ $etiqueta }}
+                </a>
+
+            @endforeach
+
+        </nav>
+
+    @endif
+
+    {{-- INDICADORES --}}
 
     <div class="cat-stats">
 
         <article>
-            <span>Registrados</span>
+
+            <span>
+                {{ $esInventario
+                    ? 'Productos registrados'
+                    : 'Clientes registrados' }}
+            </span>
+
             <strong>{{ $total }}</strong>
+
         </article>
 
         <article>
-            <span>Activos</span>
+
+            <span>
+                {{ $esInventario
+                    ? 'Productos activos'
+                    : 'Clientes activos' }}
+            </span>
+
             <strong>{{ $activos }}</strong>
+
         </article>
 
         <article>
-            @if($tipo === 'productos')
-                <span>Inactivos</span>
+
+            @if($esInventario)
+
+                <span>Productos inactivos</span>
+
                 <strong>{{ $total - $activos }}</strong>
+
             @else
+
                 <span>Saldo pendiente</span>
-                <strong>
-                    ${{ number_format($saldoTotal, 0, ',', '.') }}
-                </strong>
+
+                <strong>{{ $moneda($saldoTotal) }}</strong>
+
             @endif
+
         </article>
 
     </div>
 
+    {{-- MENSAJES --}}
+
     @if(session('success'))
-        <div class="cat-message success">
+
+        <div class="cat-message success" role="status">
+
             {{ session('success') }}
+
         </div>
+
     @endif
 
     @if($errors->any())
-        <div class="cat-message error">
-            {{ $errors->first() }}
+
+        <div class="cat-message error" role="alert">
+
+            @foreach($errors->all() as $error)
+
+                <div>{{ $error }}</div>
+
+            @endforeach
+
         </div>
+
     @endif
 
-    <form method="GET" class="cat-filters">
+    {{-- HISTORIAL DE UNA PRESENTACIÓN --}}
+
+    @if($esInventario && $pestana === 'entradas' && $presentacionSeleccionada)
+
+        <div class="cat-message success">
+
+            <strong>Historial de compras:</strong>
+
+            {{ $presentacionSeleccionada->nombre_producto }} ·
+            {{ $presentacionSeleccionada->nombre_tipo }} ·
+            {{ $presentacionSeleccionada->unidad_comercial }}
+
+            <a class="cat-secondary"
+               href="{{ route('catalogos.index', [
+                   'tipo' => 'productos',
+                   'pestana' => 'entradas'
+               ]) }}">
+
+                Ver todas las entradas
+
+            </a>
+
+            <p>
+                Se muestran las facturas que contienen esta
+                presentación, con su detalle completo.
+            </p>
+
+        </div>
+
+    @endif
+
+    {{-- FILTROS --}}
+
+    <form method="GET"
+          action="{{ route('catalogos.index', $tipo) }}"
+          class="cat-filters">
+
+        @if($esInventario)
+
+            <input type="hidden"
+                   name="pestana"
+                   value="{{ $pestana }}">
+
+            @if($pestana === 'entradas' && $presentacionSeleccionada)
+
+                <input type="hidden"
+                       name="inventario"
+                       value="{{ $presentacionSeleccionada->id_inventario }}">
+
+            @endif
+
+        @endif
+
         <input type="search"
                name="buscar"
-               value="{{ request('buscar') }}"
-               placeholder="Buscar registro...">
+               value="{{ $buscar }}"
+               maxlength="150"
+               aria-label="Buscar registros"
 
-        <select name="estado">
-            <option value="">Todos los estados</option>
-            <option value="Activo"
-                @selected(request('estado') === 'Activo')>
-                Activos
-            </option>
-            <option value="Inactivo"
-                @selected(request('estado') === 'Inactivo')>
-                Inactivos
-            </option>
-        </select>
+               placeholder="{{ !$esInventario
+                    ? 'Nombre o teléfono'
+                    : ($pestana === 'entradas'
+                        ? 'Proveedor o factura'
+                        : ($pestana === 'inventario'
+                            ? 'Producto, tipo o unidad'
+                            : 'Producto o tipo')) }}">
 
-        <button class="cat-primary">Filtrar</button>
+        @if(!$esInventario || $pestana !== 'entradas')
+
+            <select name="estado" aria-label="Estado">
+
+                <option value="">Todos los estados</option>
+
+                <option value="Activo"
+                    @selected($estado === 'Activo')>
+
+                    Activos
+
+                </option>
+
+                <option value="Inactivo"
+                    @selected($estado === 'Inactivo')>
+
+                    Inactivos
+
+                </option>
+
+            </select>
+
+        @endif
+
+        <button type="submit" class="cat-primary">
+
+            Filtrar
+
+        </button>
+
+        @php
+
+            $limpiar = ['tipo' => $tipo];
+
+            if ($esInventario) {
+
+                $limpiar['pestana'] = $pestana;
+
+                if ($pestana === 'entradas' && $presentacionSeleccionada) {
+
+                    $limpiar['inventario'] =
+                        $presentacionSeleccionada->id_inventario;
+                }
+            }
+
+        @endphp
 
         <a class="cat-secondary"
-           href="{{ route('catalogos.index', $tipo) }}">
+           href="{{ route('catalogos.index', $limpiar) }}">
+
             Limpiar
+
         </a>
+
     </form>
 
-    <div class="cat-table-wrapper">
-        <table class="cat-table">
-            <thead>
-                <tr>
-                    <th>Nombre</th>
+    {{-- =================================================
+         PESTAÑA INVENTARIO
+         ================================================= --}}
 
-                    @if($tipo !== 'productos')
-                        <th>Teléfono</th>
-                    @else
-                        <th>Descripción</th>
-                    @endif
+    @if($esInventario && $pestana === 'inventario')
 
-                    @if($tipo === 'clientes')
-                        <th>Plazo</th>
-                    @endif
+        <div class="cat-table-wrapper">
 
-                    <th>Estado</th>
+            <table class="cat-table">
 
-                    @if($tipo !== 'productos')
-                        <th>Saldo pendiente</th>
-                    @endif
+                <thead>
 
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-
-            <tbody>
-                @forelse($registros as $r)
                     <tr>
-                        <td>{{ $r->{$cfg['nombre']} }}</td>
+                        <th>Producto</th>
+                        <th>Tipo</th>
+                        <th>Unidad comercial</th>
+                        <th>Existencias</th>
+                        <th>Precio de venta</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
 
-                        @if($tipo !== 'productos')
-                            <td>{{ $r->telefono ?? '—' }}</td>
-                        @else
-                            <td>{{ $r->descripcion ?? '—' }}</td>
-                        @endif
+                </thead>
 
-                        @if($tipo === 'clientes')
-                            <td>{{ $r->plazo_credito_dias }} días</td>
-                        @endif
+                <tbody>
 
-                        <td>
-                            <span class="cat-badge
-                                {{ $r->estado === 'Activo'
-                                    ? 'active' : 'inactive' }}">
-                                {{ $r->estado }}
-                            </span>
-                        </td>
+                    @forelse($existencias as $r)
 
-                        @if($tipo !== 'productos')
-                            <td class="cat-money">
-                                ${{ number_format($r->saldo, 0, ',', '.') }}
+                        <tr>
+
+                            <td>{{ $r->nombre_producto }}</td>
+
+                            <td>{{ $r->nombre_tipo }}</td>
+
+                            <td>
+
+                                {{ $r->unidad_comercial }}
+
+                                @if($r->unidad_comercial === 'Por definir')
+
+                                    <div>
+                                        <small>
+                                            Unidad pendiente de identificación
+                                        </small>
+                                    </div>
+
+                                @endif
+
                             </td>
+
+                            <td>
+
+                                <strong>
+                                    {{ number_format(
+                                        $r->stock_actual,
+                                        0,
+                                        ',',
+                                        '.'
+                                    ) }}
+                                </strong>
+
+                                @if($r->stock_actual <= $r->stock_minimo)
+
+                                    <div><small>Stock bajo</small></div>
+
+                                @endif
+
+                            </td>
+
+                            <td class="cat-money">
+
+                                {{ $r->precio_venta_diario > 0
+                                    ? $moneda($r->precio_venta_diario)
+                                    : 'Sin precio' }}
+
+                            </td>
+
+                            <td>
+
+                                <span @class([
+                                    'cat-badge',
+                                    'active' => $r->estado === 'Activo',
+                                    'inactive' => $r->estado !== 'Activo'
+                                ])>
+
+                                    {{ $r->estado }}
+
+                                </span>
+
+                            </td>
+
+                            <td>
+
+                                <a class="cat-secondary"
+                                   href="{{ route('catalogos.index', [
+                                       'tipo' => 'productos',
+                                       'pestana' => 'entradas',
+                                       'inventario' => $r->id_inventario
+                                   ]) }}">
+
+                                    Historial
+
+                                </a>
+
+                            </td>
+
+                        </tr>
+
+                    @empty
+
+                        <tr>
+
+                            <td colspan="7" class="cat-empty">
+
+                                No hay presentaciones con estos filtros.
+                                Los tipos sin mercancía se encuentran
+                                en Catálogo.
+
+                            </td>
+
+                        </tr>
+
+                    @endforelse
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    {{-- =================================================
+         PESTAÑA ENTRADAS
+         ================================================= --}}
+
+    @elseif($esInventario && $pestana === 'entradas')
+
+        <div class="cat-table-wrapper">
+
+            <table class="cat-table">
+
+                <thead>
+
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Proveedor</th>
+                        <th>Factura / Referencia</th>
+                        <th>Total calculado</th>
+                        <th>Valor acordado</th>
+                        <th>Pagado</th>
+                        <th>Saldo pendiente</th>
+                        <th>Estado de pago</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    @forelse($entradas as $r)
+
+                        <tr>
+
+                            <td>
+
+                                <time datetime="{{ str_replace(' ', 'T', $r->fecha_entrada) }}">
+
+                                    {{ \Carbon\Carbon::parse(
+                                        $r->fecha_entrada
+                                    )->format('d/m/Y H:i') }}
+
+                                </time>
+
+                            </td>
+
+                            <td>{{ $r->nombre_razon_social }}</td>
+
+                            <td>{{ $r->documento_soporte }}</td>
+
+                            <td class="cat-money">
+                                {{ $moneda($r->total_calculado) }}
+                            </td>
+
+                            <td class="cat-money">
+                                {{ $moneda($r->valor_acordado) }}
+                            </td>
+
+                            <td class="cat-money">
+                                {{ $moneda($r->pagado) }}
+                            </td>
+
+                            <td class="cat-money">
+                                {{ $moneda($r->saldo_pendiente) }}
+                            </td>
+
+                            <td>
+
+                                <span @class([
+                                    'cat-badge',
+                                    'active' => $r->estado_pago === 'Pagado',
+                                    'inactive' => $r->estado_pago !== 'Pagado'
+                                ])>
+
+                                    {{ $r->estado_pago }}
+
+                                </span>
+
+                            </td>
+
+                        </tr>
+
+                        <tr>
+
+                            <td colspan="8">
+
+                                <details>
+
+                                    <summary>
+
+                                        Ver detalle de factura
+                                        ({{ $r->detalles->count() }} líneas)
+
+                                    </summary>
+
+                                    <div class="cat-table-wrapper">
+
+                                        <table class="cat-table"
+                                               aria-label="Detalle de factura {{ $r->documento_soporte }}">
+
+                                            <thead>
+
+                                                <tr>
+                                                    <th>Producto</th>
+                                                    <th>Tipo</th>
+                                                    <th>Unidad</th>
+                                                    <th>Cantidad recibida</th>
+                                                    <th>Costo unitario</th>
+                                                    <th>Subtotal</th>
+                                                </tr>
+
+                                            </thead>
+
+                                            <tbody>
+
+                                                @forelse($r->detalles as $d)
+
+                                                    <tr>
+
+                                                        <td>{{ $d->nombre_producto }}</td>
+
+                                                        <td>{{ $d->nombre_tipo }}</td>
+
+                                                        <td>{{ $d->unidad_comercial }}</td>
+
+                                                        <td>
+                                                            {{ number_format(
+                                                                $d->cantidad_recibida,
+                                                                0,
+                                                                ',',
+                                                                '.'
+                                                            ) }}
+                                                        </td>
+
+                                                        <td class="cat-money">
+                                                            {{ $moneda($d->costo_unitario) }}
+                                                        </td>
+
+                                                        <td class="cat-money">
+                                                            {{ $moneda($d->subtotal) }}
+                                                        </td>
+
+                                                    </tr>
+
+                                                @empty
+
+                                                    <tr>
+
+                                                        <td colspan="6" class="cat-empty">
+
+                                                            No hay detalle disponible
+                                                            para esta factura.
+
+                                                        </td>
+
+                                                    </tr>
+
+                                                @endforelse
+
+                                            </tbody>
+
+                                        </table>
+
+                                    </div>
+
+                                </details>
+
+                            </td>
+
+                        </tr>
+
+                    @empty
+
+                        <tr>
+
+                            <td colspan="8" class="cat-empty">
+
+                                No hay entradas con estos filtros.
+
+                            </td>
+
+                        </tr>
+
+                    @endforelse
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    {{-- =================================================
+         CATÁLOGO DE PRODUCTOS Y CLIENTES
+         ================================================= --}}
+
+    @else
+
+        <div class="cat-table-wrapper">
+
+            <table class="cat-table">
+
+                <thead>
+
+                    <tr>
+
+                        <th>Nombre</th>
+
+                        @if($esInventario)
+
+                            <th>Tipos</th>
+
+                        @else
+
+                            <th>Teléfono</th>
+                            <th>Plazo de crédito</th>
+
                         @endif
 
-                        <td>
-                            <div class="cat-actions">
+                        <th>Estado</th>
 
-                                @if($esDueno || $tipo === 'proveedores')
-                                    <button type="button"
-                                            class="cat-secondary"
-                                            onclick="document.getElementById('editar-{{ $r->{$cfg['id']} }}').showModal()">
-                                        Editar
-                                    </button>
-                                @endif
+                        @unless($esInventario)
 
-                                @if($esDueno)
-                                    <form method="POST"
-                                          action="{{ route('catalogos.estado', [$tipo, $r->{$cfg['id']}]) }}"
-                                          onsubmit="return confirm('¿Confirmar cambio de estado?')">
-                                        @csrf
+                            <th>Saldo pendiente</th>
 
-                                        <input type="hidden"
-                                               name="estado"
-                                               value="{{ $r->estado === 'Activo' ? 'Inactivo' : 'Activo' }}">
+                        @endunless
 
-                                        <button class="cat-secondary">
-                                            {{ $r->estado === 'Activo'
-                                                ? 'Desactivar' : 'Activar' }}
+                        @if($esDueno)
+
+                            <th>Acciones</th>
+
+                        @endif
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    @forelse($registros as $r)
+
+                        <tr>
+
+                            <td>
+
+                                <strong>{{ $r->{$cfg['nombre']} }}</strong>
+
+                            </td>
+
+                            @if($esInventario)
+
+                                <td>
+
+                                    {{ $r->tipos
+                                        ->pluck('nombre_tipo')
+                                        ->implode(' · ')
+                                        ?: 'Sin tipos registrados' }}
+
+                                </td>
+
+                            @else
+
+                                <td>{{ $r->telefono }}</td>
+
+                                <td>{{ $r->plazo_credito_dias }} días</td>
+
+                            @endif
+
+                            <td>
+
+                                <span @class([
+                                    'cat-badge',
+                                    'active' => $r->estado === 'Activo',
+                                    'inactive' => $r->estado !== 'Activo'
+                                ])>
+
+                                    {{ $r->estado }}
+
+                                </span>
+
+                            </td>
+
+                            @unless($esInventario)
+
+                                <td class="cat-money">
+
+                                    {{ $moneda($r->saldo) }}
+
+                                </td>
+
+                            @endunless
+
+                            @if($esDueno)
+
+                                <td>
+
+                                    <div class="cat-actions">
+
+                                        <button type="button"
+                                                class="cat-secondary"
+                                                onclick="document.getElementById('editar-{{ $r->{$cfg['id']} }}').showModal()">
+
+                                            Editar
+
                                         </button>
-                                    </form>
-                                @endif
 
-                            </div>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="7" class="cat-empty">
-                            No hay registros con estos filtros.
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
+                                        <form method="POST"
+                                              action="{{ route('catalogos.estado', [
+                                                  $tipo,
+                                                  $r->{$cfg['id']}
+                                              ]) }}"
+                                              onsubmit="return confirm('¿Confirmar cambio de estado?')">
 
-    <div class="cat-pagination">
-        @if($registros->previousPageUrl())
+                                            @csrf
+
+                                            <input type="hidden"
+                                                   name="estado"
+                                                   value="{{ $r->estado === 'Activo'
+                                                       ? 'Inactivo'
+                                                       : 'Activo' }}">
+
+                                            <button type="submit"
+                                                    class="cat-secondary">
+
+                                                {{ $r->estado === 'Activo'
+                                                    ? 'Desactivar'
+                                                    : 'Activar' }}
+
+                                            </button>
+
+                                        </form>
+
+                                    </div>
+
+                                </td>
+
+                            @endif
+
+                        </tr>
+
+                    @empty
+
+                        <tr>
+
+                            <td colspan="{{ ($esInventario ? 3 : 5) + ($esDueno ? 1 : 0) }}"
+                                class="cat-empty">
+
+                                No hay registros con estos filtros.
+
+                            </td>
+
+                        </tr>
+
+                    @endforelse
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    @endif
+
+    {{-- PAGINACIÓN --}}
+
+    <nav class="cat-pagination" aria-label="Paginación">
+
+        @if($pagina->previousPageUrl())
+
             <a class="cat-secondary"
-               href="{{ $registros->previousPageUrl() }}">
+               href="{{ $pagina->previousPageUrl() }}">
+
                 Anterior
+
             </a>
+
         @endif
 
-        Página {{ $registros->currentPage() }}
-        de {{ $registros->lastPage() }}
+        Página {{ $pagina->currentPage() }}
+        de {{ $pagina->lastPage() }}
+        · {{ $pagina->total() }} registros
 
-        @if($registros->nextPageUrl())
+        @if($pagina->nextPageUrl())
+
             <a class="cat-secondary"
-               href="{{ $registros->nextPageUrl() }}">
+               href="{{ $pagina->nextPageUrl() }}">
+
                 Siguiente
+
             </a>
+
         @endif
-    </div>
+
+    </nav>
 
 </main>
 
-{{-- Modal de registro --}}
+{{-- =====================================================
+     MODAL DE ENTRADAS O REGISTRO DE CLIENTES
+     ===================================================== --}}
 
-@if($tipo === 'productos')
+@if($esInventario)
+
     @include('catalogos.registro-producto')
+
 @else
 
-<dialog id="crear" class="cat-modal">
+    <dialog id="crear"
+            class="cat-modal"
+            aria-labelledby="crear-cliente-titulo">
 
-    <form method="POST"
-          action="{{ route('catalogos.store', $tipo) }}">
+        <form method="POST"
+              action="{{ route('catalogos.store', 'clientes') }}">
 
-        @csrf
+            @csrf
 
-        <h2>Registrar {{ strtolower($cfg['singular']) }}</h2>
+            <h2 id="crear-cliente-titulo">Registrar cliente</h2>
 
-        <label>Nombre *</label>
-        <input name="nombre"
-               value="{{ old('nombre') }}"
-               maxlength="{{ $tipo === 'productos' ? 100 : 150 }}"
-               required>
+            <label for="crear-nombre">Nombre *</label>
 
-        @if($tipo !== 'productos')
-            <label>Teléfono {{ $tipo === 'clientes' ? '*' : '' }}</label>
-            <input name="telefono"
+            <input id="crear-nombre"
+                   name="nombre"
+                   value="{{ old('nombre') }}"
+                   maxlength="150"
+                   required>
+
+            <label for="crear-telefono">Teléfono *</label>
+
+            <input id="crear-telefono"
+                   name="telefono"
                    type="tel"
                    value="{{ old('telefono') }}"
                    maxlength="20"
-                   @required($tipo === 'clientes')>
-        @else
-            <label>Descripción</label>
-            <textarea name="descripcion"
-                      rows="3">{{ old('descripcion') }}</textarea>
-        @endif
+                   required>
 
-        @if($tipo === 'clientes')
-            <label>Plazo de crédito en días</label>
+            <label for="crear-plazo">Plazo de crédito en días</label>
 
-            <input type="number"
+            <input id="crear-plazo"
+                   type="number"
                    name="plazo"
                    min="1"
+                   max="3650"
                    value="{{ old('plazo', 15) }}"
                    @disabled(!$esDueno)
                    required>
-        @endif
 
-        @if($tipo !== 'productos')
             <label class="cat-consent">
+
                 <input type="checkbox"
                        name="consentimiento"
                        value="1"
                        required>
 
-                Confirmo que cuento con autorización para
-                registrar y tratar estos datos de contacto.
+                Confirmo que cuento con autorización para registrar
+                y tratar estos datos de contacto.
+
             </label>
-        @endif
 
-        <div class="cat-modal-actions">
-            <button type="button"
-                    class="cat-secondary"
-                    onclick="this.closest('dialog').close()">
-                Cancelar
-            </button>
+            <div class="cat-modal-actions">
 
-            <button class="cat-primary">Guardar registro</button>
-        </div>
+                <button type="button"
+                        class="cat-secondary"
+                        onclick="this.closest('dialog').close()">
 
-    </form>
-</dialog>
+                    Cancelar
+
+                </button>
+
+                <button type="submit" class="cat-primary">
+
+                    Guardar registro
+
+                </button>
+
+            </div>
+
+        </form>
+
+    </dialog>
 
 @endif
 
+{{-- =====================================================
+     EDICIÓN DE PRODUCTOS Y CLIENTES
+     EXCLUSIVA DEL DUEÑO
+     ===================================================== --}}
 
-{{-- Modales de edición --}}
+@if($esDueno && (!$esInventario || $pestana === 'catalogo'))
 
-@foreach($registros as $r)
-
-    @if($esDueno || $tipo === 'proveedores')
+    @foreach($registros as $r)
 
         <dialog id="editar-{{ $r->{$cfg['id']} }}"
-                class="cat-modal">
+                class="cat-modal"
+                aria-labelledby="editar-titulo-{{ $r->{$cfg['id']} }}">
 
             <form method="POST"
-                  action="{{ route('catalogos.update', [$tipo, $r->{$cfg['id']}]) }}">
+                  action="{{ route('catalogos.update', [
+                      $tipo,
+                      $r->{$cfg['id']}
+                  ]) }}">
 
                 @csrf
+
                 @method('PUT')
 
-                <h2>Editar {{ strtolower($cfg['singular']) }}</h2>
+                <h2 id="editar-titulo-{{ $r->{$cfg['id']} }}">
 
-                <label>Nombre *</label>
-                <input name="nombre"
-                       value="{{ $r->{$cfg['nombre']} }}"
-                       required>
+                    Editar {{ strtolower($cfg['singular']) }}
 
-                @if($tipo !== 'productos')
-                    <label>Teléfono</label>
-                    <input name="telefono"
-                           type="tel"
-                           value="{{ $r->telefono }}"
-                           @required($tipo === 'clientes')>
-                @else
-                    <label>Descripción</label>
-                    <textarea name="descripcion"
-                              rows="3">{{ $r->descripcion }}</textarea>
-                @endif
+                </h2>
 
-                @if($tipo === 'clientes')
-                    <label>Plazo de crédito en días</label>
-                    <input type="number"
-                           name="plazo"
-                           min="1"
-                           value="{{ $r->plazo_credito_dias }}"
+                <label>
+
+                    Nombre *
+
+                    <input name="nombre"
+                           value="{{ $r->{$cfg['nombre']} }}"
+                           maxlength="{{ $esInventario ? 100 : 150 }}"
                            required>
-                @endif
+
+                </label>
+
+                @unless($esInventario)
+
+                    <label>
+
+                        Teléfono *
+
+                        <input name="telefono"
+                               type="tel"
+                               maxlength="20"
+                               value="{{ $r->telefono }}"
+                               required>
+
+                    </label>
+
+                    <label>
+
+                        Plazo de crédito en días
+
+                        <input name="plazo"
+                               type="number"
+                               min="1"
+                               max="3650"
+                               value="{{ $r->plazo_credito_dias }}"
+                               required>
+
+                    </label>
+
+                @endunless
 
                 <div class="cat-modal-actions">
+
                     <button type="button"
                             class="cat-secondary"
                             onclick="this.closest('dialog').close()">
+
                         Cancelar
+
                     </button>
 
-                    <button class="cat-primary">
+                    <button type="submit" class="cat-primary">
+
                         Guardar cambios
+
                     </button>
+
                 </div>
 
             </form>
+
         </dialog>
 
-    @endif
+    @endforeach
 
-@endforeach
+@endif
 
 @endsection

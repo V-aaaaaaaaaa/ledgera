@@ -6,45 +6,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!modal) return;
 
-    // =====================================================
-    // ELEMENTOS DEL FORMULARIO
-    // =====================================================
+    const $ = selector => modal.querySelector(selector);
 
-    const form = modal.querySelector('#rp-form');
-    const lista = modal.querySelector('#rp-productos');
+    const form = $('#rp-form');
+    const lista = $('#rp-productos');
+    const plantillaProducto = $('#rp-template-producto');
+    const plantillaTipo = $('#rp-template-tipo');
 
-    const plantillaProducto = modal.querySelector('#rp-template-producto');
-    const plantillaTipo = modal.querySelector('#rp-template-tipo');
+    const agregarProducto = $('#rp-agregar-producto');
+    const guardar = $('#rp-guardar');
+    const proveedor = $('#rp-proveedor');
+    const documento = $('#rp-documento');
+    const estadoCarga = $('#rp-estado-carga');
 
-    const agregarProducto = modal.querySelector('#rp-agregar-producto');
-    const guardar = modal.querySelector('#rp-guardar');
+    const usarAcordado = $('#rp-usar-valor-acordado');
+    const valorAcordado = $('#rp-valor-acordado');
 
-    const selectorProveedor = modal.querySelector('#rp-proveedor');
-    const sugerenciaProveedor = modal.querySelector('#rp-sugerencia-proveedor');
-    const sinProveedores = modal.querySelector('#rp-sin-proveedores');
-
-    const documento = modal.querySelector('#rp-documento');
-    const generarDocumento = modal.querySelector('#rp-generar-documento');
-
-    const estadoCarga = modal.querySelector('#rp-estado-carga');
-    const avisoTotal = modal.querySelector('#rp-error-total');
-
-    const LIMITE_TOTAL = 9999999999n;
     const MAX_PRODUCTOS = 20;
     const MAX_TIPOS = 20;
-    const MAX_TIPOS_TOTAL = 200;
+    const MAX_LINEAS = 150;
+    const LIMITE_TOTAL = 9999999999n;
+    const NUEVO_TIPO = '__nuevo__';
 
     const moneda = new Intl.NumberFormat('es-CO', {
         style: 'currency',
         currency: 'COP',
-        maximumFractionDigits: 0
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2
     });
 
     const numero = new Intl.NumberFormat('es-CO');
 
     let catalogo = [];
-    let indiceProducto = 0;
-    let catalogoCargado = false;
+    let cargado = false;
     let enviando = false;
 
     // =====================================================
@@ -56,11 +50,14 @@ document.addEventListener('DOMContentLoaded', () => {
             ? String(valor)
             : '';
 
+    const limpiar = valor =>
+        texto(valor).trim().replace(/\s+/g, ' ');
+
     const normalizar = valor =>
-        texto(valor)
-            .trim()
-            .replace(/\s+/g, ' ')
-            .toLocaleLowerCase('es-CO');
+        limpiar(valor)
+            .toLocaleLowerCase('es-CO')
+            .normalize('NFD')
+            .replace(/\p{M}/gu, '');
 
     const entero = input =>
         /^\d+$/.test(input.value)
@@ -70,425 +67,623 @@ document.addEventListener('DOMContentLoaded', () => {
     const comoLista = valor =>
         valor && typeof valor === 'object'
             ? Object.values(valor).filter(
-                elemento => elemento && typeof elemento === 'object'
+                item => item && typeof item === 'object'
             )
             : [];
 
     const tarjetas = () =>
         Array.from(lista.querySelectorAll('.rp-product-card'));
 
-    const totalTipos = () =>
+    const filas = tarjeta =>
+        Array.from(tarjeta.querySelectorAll('.rp-quality'));
+
+    const totalLineas = () =>
         lista.querySelectorAll('.rp-quality').length;
 
-    function buscarProducto(id) {
-
-        return catalogo.find(
-            producto => String(producto.id_producto) === String(id)
+    const campoProducto = (tarjeta, nombre) =>
+        tarjeta.querySelector(
+            `[data-producto-campo="${nombre}"]`
         );
 
+    const campoTipo = (fila, nombre) =>
+        fila.querySelector(`[data-campo="${nombre}"]`);
+
+    const selectorProducto = tarjeta =>
+        tarjeta.querySelector('[data-selector-producto]');
+
+    const selectorTipo = fila =>
+        fila.querySelector('[data-selector-tipo]');
+
+    const nuevoTipo = fila =>
+        fila.querySelector('[data-nombre-tipo-nuevo]');
+
+    function buscarProducto(id) {
+        return catalogo.find(
+            p => String(p.id_producto) === String(id)
+        );
     }
 
     function productoSeleccionado(tarjeta) {
-
         return buscarProducto(
-            tarjeta.querySelector('[data-selector-producto]').value
+            selectorProducto(tarjeta).value
         );
-
     }
 
     function buscarTipo(producto, nombre) {
-
         return producto?.tipos?.find(
-            tipo => normalizar(tipo.nombre) === normalizar(nombre)
+            t => normalizar(t.nombre) === normalizar(nombre)
         );
+    }
 
+    function buscarPresentacion(tipo, unidad) {
+        return tipo?.presentaciones?.find(
+            p => p.unidad_comercial === unidad
+        );
+    }
+
+    function validarEntero(input) {
+        input.setCustomValidity(
+            input.value !== '' && !/^\d+$/.test(input.value)
+                ? 'Ingresa un número entero válido.'
+                : ''
+        );
     }
 
     // =====================================================
-    // CARGAR CATÁLOGO DESDE LARAVEL
+    // CARGAR CATÁLOGO
     // =====================================================
 
     async function cargarCatalogo() {
 
-        estadoCarga.hidden = false;
-        estadoCarga.textContent = 'Cargando catálogo de productos...';
-
         try {
 
-            const respuesta = await api('/entradas-mercancia/datos');
+            const respuesta = await api(
+                '/entradas-mercancia/datos'
+            );
 
-            if (!respuesta?.ok || !Array.isArray(respuesta.productos)) {
-
-                throw new Error(
-                    respuesta?.mensaje ||
-                    'No fue posible cargar los productos.'
-                );
-
+            if (
+                !respuesta?.ok ||
+                !Array.isArray(respuesta.productos)
+            ) {
+                throw new Error('Catálogo no disponible.');
             }
 
             catalogo = respuesta.productos;
-            catalogoCargado = true;
+            cargado = true;
 
             estadoCarga.hidden = true;
 
             restaurarFormulario();
-
             actualizar();
 
         } catch (error) {
 
-            catalogoCargado = false;
+            cargado = false;
 
             if (error.message === 'sin sesion') return;
 
+            estadoCarga.hidden = false;
             estadoCarga.textContent =
-                'No se pudo cargar el catálogo. Verifica tu conexión y recarga la página.';
+                'No se pudo cargar el catálogo. Recarga la página.';
 
             actualizar();
-
         }
-
     }
 
     // =====================================================
-    // AGREGAR PRODUCTOS
+    // CREAR PRODUCTO
     // =====================================================
 
-    function agregarTarjeta(datos = {}) {
-
-        if (tarjetas().length >= MAX_PRODUCTOS) return;
+    function crearProducto(datos = {}) {
 
         const tarjeta = plantillaProducto.content
-            .firstElementChild
-            .cloneNode(true);
+            .firstElementChild.cloneNode(true);
 
-        const indice = indiceProducto++;
+        const selector = selectorProducto(tarjeta);
 
-        tarjeta.dataset.indice = indice;
-        tarjeta.dataset.indiceTipo = '0';
-
-        const selector = tarjeta.querySelector(
-            '[data-selector-producto]'
+        const opcionInicial = selector.querySelector(
+            'option[value=""]'
         );
 
-        const listaTipos = tarjeta.querySelector(
-            '[data-lista-tipos]'
-        );
-
-        listaTipos.id = `rp-lista-tipos-${indice}`;
-
-        // Cargar productos existentes.
+        opcionInicial.disabled = true;
+        opcionInicial.hidden = true;
 
         catalogo.forEach(producto => {
-
             selector.add(new Option(
                 producto.nombre_producto,
-                String(producto.id_producto)
+                producto.id_producto
             ));
-
         });
 
-        // Construir nombres de campos para Laravel.
-
-        tarjeta.querySelectorAll('[data-producto-campo]')
-            .forEach(input => {
-
-                const campo = input.dataset.productoCampo;
-
-                input.name = `productos[${indice}][${campo}]`;
-
-                if (datos[campo] != null) {
-                    input.value = texto(datos[campo]);
-                }
-
-            });
-
-        lista.appendChild(tarjeta);
-
-        // Recuperar selección después de errores.
+        campoProducto(tarjeta, 'nombre').value =
+            texto(datos.nombre);
 
         if (datos.id_producto) {
 
             const id = String(datos.id_producto);
 
-            selector.value = buscarProducto(id) ? id : '';
+            if (!buscarProducto(id)) {
+                selector.add(
+                    new Option('Producto no disponible', id)
+                );
+            }
 
-        } else if (datos.nombre || datos.unidad_comercial) {
+            selector.value = id;
+
+        } else if (datos.nombre) {
 
             selector.value = 'nuevo';
 
-        }
-
-        configurarProducto(tarjeta);
-
-        // Recuperar tipos previamente ingresados.
-
-        const tiposAnteriores = comoLista(datos.calidades);
-
-        if (tiposAnteriores.length) {
-
-            tiposAnteriores
-                .slice(0, MAX_TIPOS)
-                .forEach(tipo => agregarTipo(tarjeta, tipo));
-
         } else {
 
-            agregarTipo(tarjeta);
-
+            selector.value = '';
         }
 
         selector.dataset.anterior = selector.value;
 
-        actualizar();
+        lista.appendChild(tarjeta);
+
+        configurarProducto(tarjeta);
+
+        const anteriores = comoLista(datos.calidades);
+
+        if (anteriores.length) {
+
+            anteriores.forEach(tipo =>
+                crearPresentacion(tarjeta, tipo)
+            );
+
+        } else {
+
+            crearPresentacion(tarjeta);
+        }
+
+        // Eliminar cualquier producto, incluso el último.
+
+        const eliminar = tarjeta.querySelector(
+            '[data-eliminar-producto]'
+        );
+
+        eliminar.disabled = false;
+
+        eliminar.addEventListener('click', evento => {
+
+            evento.preventDefault();
+            evento.stopPropagation();
+
+            if (enviando) return;
+
+            tarjeta.remove();
+
+            actualizar();
+        });
+
+        tarjeta.querySelector('[data-agregar-tipo]')
+            .addEventListener('click', () => {
+
+                if (
+                    enviando ||
+                    filas(tarjeta).length >= MAX_TIPOS ||
+                    totalLineas() >= MAX_LINEAS
+                ) return;
+
+                const fila = crearPresentacion(tarjeta);
+
+                actualizar();
+
+                if (selectorTipo(fila).value === NUEVO_TIPO) {
+                    nuevoTipo(fila).focus();
+                } else {
+                    selectorTipo(fila).focus();
+                }
+            });
 
         return tarjeta;
-
     }
-
-    // =====================================================
-    // CONFIGURAR PRODUCTO EXISTENTE O NUEVO
-    // =====================================================
 
     function configurarProducto(tarjeta) {
 
-        const selector = tarjeta.querySelector(
-            '[data-selector-producto]'
-        );
-
+        const selector = selectorProducto(tarjeta);
         const producto = productoSeleccionado(tarjeta);
+
         const esNuevo = selector.value === 'nuevo';
+        const nombre = campoProducto(tarjeta, 'nombre');
 
-        const idProducto = tarjeta.querySelector(
-            '[data-producto-campo="id_producto"]'
-        );
-
-        const nombre = tarjeta.querySelector(
-            '[data-producto-campo="nombre"]'
-        );
-
-        const descripcion = tarjeta.querySelector(
-            '[data-producto-campo="descripcion"]'
-        );
-
-        const unidad = tarjeta.querySelector(
-            '[data-producto-campo="unidad_comercial"]'
-        );
-
-        const informacion = tarjeta.querySelector(
-            '[data-info-producto]'
-        );
-
-        const listaTipos = tarjeta.querySelector(
-            '[data-lista-tipos]'
-        );
-
-        idProducto.value = producto?.id_producto || '';
-
-        // Mostrar nombre y descripción solo para productos nuevos.
-
-        tarjeta.querySelector('[data-nombre-nuevo]').hidden =
-            !esNuevo;
-
-        tarjeta.querySelector('[data-descripcion-nueva]').hidden =
-            !esNuevo;
+        tarjeta.querySelector('[data-nombre-nuevo]')
+            .hidden = !esNuevo;
 
         nombre.disabled = !esNuevo;
         nombre.required = esNuevo;
 
-        descripcion.disabled = !esNuevo;
-
-        // Restablecer opciones de unidad comercial.
-
-        Array.from(unidad.options).forEach(opcion => {
-            opcion.disabled = false;
-        });
-
-        listaTipos.replaceChildren();
-
-        informacion.hidden = true;
-        informacion.textContent = '';
-
-        if (producto) {
-
-            // Mantener la unidad comercial existente.
-
-            if (producto.unidad_comercial) {
-
-                unidad.value = producto.unidad_comercial;
-
-                Array.from(unidad.options).forEach(opcion => {
-
-                    opcion.disabled =
-                        opcion.value !== producto.unidad_comercial;
-
-                });
-
-                informacion.textContent =
-                    'Producto existente. Se conservará su unidad comercial.';
-
-            } else {
-
-                informacion.textContent =
-                    'Este producto todavía no tiene unidad comercial. Selecciona la correspondiente.';
-
-            }
-
-            informacion.hidden = false;
-
-            // Cargar sugerencias de tipos existentes.
-
-            (producto.tipos || []).forEach(tipo => {
-
-                const opcion = document.createElement('option');
-
-                opcion.value = tipo.nombre;
-
-                opcion.label =
-                    `Stock actual: ${numero.format(tipo.stock)}`;
-
-                listaTipos.appendChild(opcion);
-
-            });
-
-        }
-
-        if (esNuevo) {
-
-            informacion.textContent =
-                'Se creará el producto y sus tipos con esta entrada.';
-
-            informacion.hidden = false;
-
-        }
-
-        tarjeta.querySelectorAll('.rp-quality').forEach(fila => {
-
-            configurarTipo(tarjeta, fila);
-
-        });
-
-        actualizarTitulos();
-
+        campoProducto(tarjeta, 'id_producto').value =
+            producto ? producto.id_producto : '';
     }
 
     // =====================================================
-    // AGREGAR TIPOS DE PRODUCTO
+    // CREAR PRESENTACIÓN
     // =====================================================
 
-    function agregarTipo(tarjeta, datos = {}) {
-
-        const contenedor = tarjeta.querySelector(
-            '[data-contenedor-tipos]'
-        );
-
-        if (contenedor.children.length >= MAX_TIPOS) return;
-        if (totalTipos() >= MAX_TIPOS_TOTAL) return;
+    function crearPresentacion(tarjeta, datos = {}) {
 
         const fila = plantillaTipo.content
-            .firstElementChild
-            .cloneNode(true);
+            .firstElementChild.cloneNode(true);
 
-        const indice = tarjeta.dataset.indice;
+        ['unidad_comercial', 'cantidad', 'costo', 'precio']
+            .forEach(campo => {
 
-        const indiceTipo = Number(tarjeta.dataset.indiceTipo);
+                campoTipo(fila, campo).value =
+                    texto(datos[campo]);
+            });
 
-        tarjeta.dataset.indiceTipo = String(indiceTipo + 1);
+        tarjeta.querySelector('[data-contenedor-tipos]')
+            .appendChild(fila);
 
-        fila.querySelectorAll('[data-campo]').forEach(input => {
-
-            const campo = input.dataset.campo;
-
-            input.name =
-                `productos[${indice}][calidades][${indiceTipo}][${campo}]`;
-
-            input.value = texto(datos[campo]);
-
-        });
-
-        const nombre = fila.querySelector('[data-campo="nombre"]');
-
-        nombre.setAttribute(
-            'list',
-            `rp-lista-tipos-${indice}`
+        configurarSelectorTipos(
+            tarjeta,
+            fila,
+            texto(datos.nombre)
         );
 
-        contenedor.appendChild(fila);
+        fila.querySelector('[data-eliminar-tipo]')
+            .addEventListener('click', evento => {
 
-        configurarTipo(tarjeta, fila);
+                evento.preventDefault();
+                evento.stopPropagation();
 
-        actualizar();
+                if (
+                    enviando ||
+                    filas(tarjeta).length <= 1
+                ) return;
+
+                fila.remove();
+
+                actualizar();
+            });
 
         return fila;
-
     }
 
     // =====================================================
-    // CONFIGURAR TIPO EXISTENTE O NUEVO
+    // CONFIGURAR SELECTOR DE TIPOS
     // =====================================================
 
-    function configurarTipo(tarjeta, fila) {
+    function configurarSelectorTipos(
+        tarjeta,
+        fila,
+        anterior = ''
+    ) {
 
+        const selector = selectorTipo(fila);
+        const campoNuevo = nuevoTipo(fila);
         const producto = productoSeleccionado(tarjeta);
 
-        const nombre = fila.querySelector(
-            '[data-campo="nombre"]'
+        selector.replaceChildren();
+
+        // Texto inicial: no seleccionable.
+
+        const placeholder = new Option(
+            'Seleccionar tipo',
+            '',
+            true,
+            true
         );
 
-        const precio = fila.querySelector(
-            '[data-campo="precio"]'
-        );
+        placeholder.disabled = true;
+        placeholder.hidden = true;
 
-        const stock = fila.querySelector(
-            '[data-stock-tipo]'
-        );
+        selector.add(placeholder);
 
-        const infoPrecio = fila.querySelector(
-            '[data-info-precio]'
-        );
+        producto?.tipos?.forEach(tipo => {
 
-        const tipo = buscarTipo(producto, nombre.value);
+            selector.add(new Option(
+                tipo.nombre,
+                String(tipo.id)
+            ));
+        });
 
-        if (tipo) {
+        selector.add(new Option(
+            '+ Registrar nuevo tipo',
+            NUEVO_TIPO
+        ));
 
-            // Un ingreso de mercancía no cambia el precio existente.
+        campoNuevo.value = '';
 
-            precio.value = '';
-            precio.disabled = true;
-            precio.required = false;
+        const existente = buscarTipo(producto, anterior);
 
-            precio.placeholder = 'Precio vigente';
+        if (existente) {
 
-            stock.textContent =
-                `Existente · Stock: ${numero.format(tipo.stock)}`;
+            selector.value = String(existente.id);
 
-            infoPrecio.textContent =
-                `Actual: ${moneda.format(tipo.precio)}`;
+        } else if (anterior) {
+
+            selector.value = NUEVO_TIPO;
+            campoNuevo.value = anterior;
+
+        } else if (
+            selectorProducto(tarjeta).value === 'nuevo' ||
+            (producto && !producto.tipos?.length)
+        ) {
+
+            selector.value = NUEVO_TIPO;
 
         } else {
 
-            precio.disabled = false;
-
-            precio.required = Boolean(nombre.value.trim());
-
-            precio.placeholder = 'Ej. 50000';
-
-            stock.textContent = nombre.value.trim()
-                ? 'Nuevo tipo'
-                : '';
-
-            infoPrecio.textContent = nombre.value.trim()
-                ? 'Define el precio de venta.'
-                : '';
-
+            selector.value = '';
         }
 
+        selector.disabled =
+            !producto &&
+            selectorProducto(tarjeta).value !== 'nuevo';
+
+        sincronizarTipo(tarjeta, fila);
+    }
+
+    function sincronizarTipo(tarjeta, fila) {
+
+        const selector = selectorTipo(fila);
+        const campoNuevo = nuevoTipo(fila);
+        const campoNombre = campoTipo(fila, 'nombre');
+
+        const producto = productoSeleccionado(tarjeta);
+
+        const esNuevo =
+            !selector.disabled &&
+            selector.value === NUEVO_TIPO;
+
+        campoNuevo.hidden = !esNuevo;
+        campoNuevo.disabled = !esNuevo;
+        campoNuevo.required = esNuevo;
+
+        campoNuevo.setCustomValidity('');
+        selector.setCustomValidity('');
+
+        if (esNuevo) {
+
+            campoNombre.value = limpiar(campoNuevo.value);
+
+        } else {
+
+            const tipo = producto?.tipos?.find(
+                t => String(t.id) === selector.value
+            );
+
+            campoNombre.value = tipo?.nombre || '';
+        }
     }
 
     // =====================================================
-    // SUGERENCIA DE PROVEEDORES
+    // EXISTENCIAS Y PRECIO DE VENTA
     // =====================================================
 
-    function sugerirProveedor(seleccionarAutomaticamente = false) {
+    function actualizarPresentacion(tarjeta, fila) {
+
+        sincronizarTipo(tarjeta, fila);
+
+        const producto = productoSeleccionado(tarjeta);
+
+        const nombre = campoTipo(fila, 'nombre').value;
+        const unidad = campoTipo(fila, 'unidad_comercial').value;
+
+        const precio = campoTipo(fila, 'precio');
+
+        const stockInfo = fila.querySelector(
+            '[data-stock-tipo]'
+        );
+
+        const precioInfo = fila.querySelector(
+            '[data-info-precio]'
+        );
+
+        const tipo = buscarTipo(producto, nombre);
+        const presentacion = buscarPresentacion(tipo, unidad);
+
+        stockInfo.textContent = '';
+
+        if (presentacion) {
+
+            stockInfo.textContent =
+                `Stock actual: ${numero.format(presentacion.stock)}`;
+
+        } else if (nombre && unidad) {
+
+            stockInfo.textContent =
+                'Stock de esta presentación: 0';
+
+            if (tipo?.presentaciones?.some(
+                p => p.unidad_comercial === 'Por definir'
+            )) {
+                stockInfo.textContent +=
+                    '. Existe stock antiguo pendiente de clasificar.';
+            }
+        }
+
+        if (
+            presentacion &&
+            Number(presentacion.precio) > 0
+        ) {
+
+            precio.value = texto(presentacion.precio);
+
+            precio.disabled = true;
+            precio.required = false;
+            precio.dataset.bloqueado = '1';
+
+            precio.setCustomValidity('');
+
+            precioInfo.textContent =
+                `Precio vigente: ${moneda.format(
+                    Number(presentacion.precio)
+                )}`;
+
+        } else {
+
+            if (precio.dataset.bloqueado === '1') {
+                precio.value = '';
+            }
+
+            precio.disabled = false;
+            precio.required = true;
+            precio.dataset.bloqueado = '0';
+
+            precioInfo.textContent =
+                'Indica el precio inicial.';
+
+            validarEntero(precio);
+        }
+    }
+
+    // =====================================================
+    // REINDEXAR CAMPOS
+    // =====================================================
+
+    function reindexar() {
+
+        tarjetas().forEach((tarjeta, i) => {
+
+            tarjeta.querySelectorAll('[data-producto-campo]')
+                .forEach(input => {
+
+                    input.name =
+                        `productos[${i}][${input.dataset.productoCampo}]`;
+                });
+
+            filas(tarjeta).forEach((fila, j) => {
+
+                fila.querySelectorAll('[data-campo]')
+                    .forEach(input => {
+
+                        input.name =
+                            `productos[${i}][calidades][${j}][${input.dataset.campo}]`;
+                    });
+            });
+
+            const producto = productoSeleccionado(tarjeta);
+
+            const nombre = producto?.nombre_producto ||
+                limpiar(campoProducto(tarjeta, 'nombre').value);
+
+            tarjeta.querySelector('[data-titulo-producto]')
+                .textContent = nombre
+                    ? `Producto ${i + 1} — ${nombre}`
+                    : `Producto ${i + 1}`;
+        });
+    }
+
+    // =====================================================
+    // VALIDAR DUPLICADOS
+    // =====================================================
+
+    function validarDuplicados() {
+
+        const productosUsados = new Set();
+
+        tarjetas().forEach(tarjeta => {
+
+            const selector = selectorProducto(tarjeta);
+            const nombre = campoProducto(tarjeta, 'nombre');
+
+            const producto = productoSeleccionado(tarjeta);
+            const esNuevo = selector.value === 'nuevo';
+
+            selector.setCustomValidity('');
+            nombre.setCustomValidity('');
+
+            let clave = '';
+
+            if (esNuevo) {
+
+                clave = normalizar(nombre.value);
+
+                if (limpiar(nombre.value).length < 2) {
+
+                    nombre.setCustomValidity(
+                        'Escribe un nombre válido.'
+                    );
+
+                } else if (catalogo.some(
+                    p => normalizar(p.nombre_producto) === clave
+                )) {
+
+                    nombre.setCustomValidity(
+                        'El producto ya existe. Selecciónalo del catálogo.'
+                    );
+                }
+
+            } else if (producto) {
+
+                clave = normalizar(producto.nombre_producto);
+
+            } else if (selector.value) {
+
+                selector.setCustomValidity(
+                    'El producto no está disponible.'
+                );
+            }
+
+            if (clave) {
+
+                if (productosUsados.has(clave)) {
+
+                    (esNuevo ? nombre : selector)
+                        .setCustomValidity(
+                            'Agrupa las presentaciones del mismo producto.'
+                        );
+                }
+
+                productosUsados.add(clave);
+            }
+
+            const presentacionesUsadas = new Set();
+
+            filas(tarjeta).forEach(fila => {
+
+                const selector = selectorTipo(fila);
+                const campoNuevo = nuevoTipo(fila);
+                const unidad = campoTipo(fila, 'unidad_comercial');
+                const nombre = campoTipo(fila, 'nombre').value;
+
+                unidad.setCustomValidity('');
+
+                if (selector.value === NUEVO_TIPO) {
+
+                    if (!limpiar(nombre)) {
+
+                        campoNuevo.setCustomValidity(
+                            'Escribe el nombre del nuevo tipo.'
+                        );
+
+                    } else if (buscarTipo(producto, nombre)) {
+
+                        campoNuevo.setCustomValidity(
+                            'Este tipo ya existe. Selecciónalo de la lista.'
+                        );
+                    }
+                }
+
+                if (!nombre || !unidad.value) return;
+
+                const clave = JSON.stringify([
+                    normalizar(nombre),
+                    unidad.value
+                ]);
+
+                if (presentacionesUsadas.has(clave)) {
+
+                    unidad.setCustomValidity(
+                        'Esta combinación de tipo y unidad está repetida.'
+                    );
+                }
+
+                presentacionesUsadas.add(clave);
+            });
+        });
+    }
+
+    // =====================================================
+    // SUGERENCIA DE PROVEEDOR
+    // =====================================================
+
+    function actualizarProveedor() {
 
         const sugeridos = new Set();
 
@@ -496,507 +691,213 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const producto = productoSeleccionado(tarjeta);
 
-            const idProveedor = producto?.ultimo_proveedor;
-
-            if (!idProveedor) return;
-
-            const existe = Array.from(selectorProveedor.options)
-                .some(opcion => opcion.value === String(idProveedor));
-
-            if (existe) sugeridos.add(String(idProveedor));
-
+            if (producto?.ultimo_proveedor) {
+                sugeridos.add(
+                    String(producto.ultimo_proveedor)
+                );
+            }
         });
 
-        sugerenciaProveedor.hidden = true;
-        sugerenciaProveedor.textContent = '';
+        const opciones = Array.from(proveedor.options)
+            .filter(o => o.value && !o.disabled);
 
-        if (sugeridos.size === 0) return;
+        const disponibles = opciones.filter(
+            o => sugeridos.has(o.value)
+        );
 
-        sugerenciaProveedor.hidden = false;
+        const aviso = $('#rp-sugerencia-proveedor');
 
-        if (sugeridos.size > 1) {
+        $('#rp-sin-proveedores').hidden =
+            opciones.length > 0;
 
-            sugerenciaProveedor.textContent =
-                'Los productos tienen distintos proveedores habituales. Selecciona el proveedor de esta compra.';
+        aviso.hidden = true;
+        aviso.textContent = '';
 
-            return;
+        if (disponibles.length === 1) {
 
+            aviso.textContent =
+                `Proveedor sugerido: ${disponibles[0].textContent.trim()}. ` +
+                'Confirma el proveedor de esta compra.';
+
+            aviso.hidden = false;
+
+        } else if (disponibles.length > 1) {
+
+            aviso.textContent =
+                'Selecciona el proveedor correspondiente a esta compra.';
+
+            aviso.hidden = false;
         }
-
-        const idSugerido = Array.from(sugeridos)[0];
-
-        const opcion = Array.from(selectorProveedor.options)
-            .find(item => item.value === idSugerido);
-
-        if (!selectorProveedor.value && seleccionarAutomaticamente) {
-
-            selectorProveedor.value = idSugerido;
-
-        }
-
-        // Nunca reemplazar un proveedor elegido por el operador.
-
-        sugerenciaProveedor.textContent =
-            selectorProveedor.value === idSugerido
-                ? `Último proveedor utilizado: ${opcion.text}`
-                : `Proveedor sugerido: ${opcion.text}. Puedes seleccionar otro.`;
-
     }
-
-    // =====================================================
-    // GENERAR REFERENCIA INTERNA
-    // =====================================================
-
-    generarDocumento.addEventListener('click', () => {
-
-        if (
-            documento.value.trim() &&
-            !/^INT-\d+$/.test(documento.value.trim()) &&
-            !confirm('¿Reemplazar el documento por una referencia interna?')
-        ) {
-
-            return;
-
-        }
-
-        let referencia;
-
-        do {
-
-            const aleatorio = new Uint32Array(1);
-
-            crypto.getRandomValues(aleatorio);
-
-            const codigo = 10000000 + (aleatorio[0] % 90000000);
-
-            referencia = `INT-${codigo}`;
-
-        } while (referencia === documento.value);
-
-        documento.value = referencia;
-
-        documento.focus();
-
-    });
 
     // =====================================================
     // CÁLCULOS FINANCIEROS
     // =====================================================
 
-    function actualizarTitulos() {
-
-        tarjetas().forEach((tarjeta, indice) => {
-
-            const producto = productoSeleccionado(tarjeta);
-
-            const nombre = tarjeta.querySelector(
-                '[data-producto-campo="nombre"]'
-            ).value;
-
-            tarjeta.querySelector('[data-titulo-producto]')
-                .textContent =
-                    `Producto ${indice + 1} · ${
-                        producto?.nombre_producto ||
-                        nombre.trim() ||
-                        'Sin seleccionar'
-                    }`;
-
-        });
-
-    }
-
-    function actualizar() {
+    function calcularTotal() {
 
         let total = 0n;
-        let cantidadTipos = 0;
 
-        const productos = tarjetas();
-
-        productos.forEach(tarjeta => {
+        tarjetas().forEach(tarjeta => {
 
             let subtotalProducto = 0n;
 
-            const filas = Array.from(
-                tarjeta.querySelectorAll('.rp-quality')
-            );
+            filas(tarjeta).forEach(fila => {
 
-            cantidadTipos += filas.length;
+                const cantidad = campoTipo(fila, 'cantidad');
+                const costo = campoTipo(fila, 'costo');
 
-            filas.forEach(fila => {
-
-                const cantidad = fila.querySelector(
-                    '[data-campo="cantidad"]'
-                );
-
-                const costo = fila.querySelector(
-                    '[data-campo="costo"]'
-                );
-
-                fila.querySelectorAll('input[type="number"]')
-                    .forEach(input => {
-
-                        input.setCustomValidity(
-                            input.value && !/^\d+$/.test(input.value)
-                                ? 'Ingresa un número entero.'
-                                : ''
-                        );
-
-                    });
+                validarEntero(cantidad);
+                validarEntero(costo);
 
                 const subtotal =
                     entero(cantidad) * entero(costo);
 
-                subtotalProducto += subtotal;
-
                 fila.querySelector('[data-subtotal]')
                     .textContent = moneda.format(subtotal);
 
-                fila.querySelector('[data-eliminar-tipo]')
-                    .disabled = filas.length <= 1;
-
+                subtotalProducto += subtotal;
             });
-
-            total += subtotalProducto;
 
             tarjeta.querySelector('[data-total-producto]')
                 .textContent = moneda.format(subtotalProducto);
 
-            tarjeta.querySelector('[data-eliminar-producto]')
-                .disabled = productos.length <= 1;
+            total += subtotalProducto;
+        });
+
+        return total;
+    }
+
+    function actualizarTotales() {
+
+        const total = calcularTotal();
+
+        const productos = tarjetas().length;
+        const lineas = totalLineas();
+
+        $('#rp-total-productos').textContent = productos;
+
+        $('#rp-total-tipos').textContent =
+            `${lineas} ${lineas === 1
+                ? 'presentación'
+                : 'presentaciones'}`;
+
+        $('#rp-total').textContent = moneda.format(total);
+
+        $('#rp-campo-valor-acordado').hidden =
+            !usarAcordado.checked;
+
+        valorAcordado.disabled = !usarAcordado.checked;
+        valorAcordado.required = usarAcordado.checked;
+
+        validarEntero(valorAcordado);
+
+        const acordado = usarAcordado.checked
+            ? entero(valorAcordado)
+            : total;
+
+        const diferencia = acordado - total;
+
+        $('#rp-valor-calculado').textContent =
+            moneda.format(total);
+
+        $('#rp-total-acordado').textContent =
+            moneda.format(acordado);
+
+        $('#rp-saldo-pendiente').textContent =
+            moneda.format(acordado);
+
+        $('#rp-diferencia-etiqueta').textContent =
+            diferencia < 0n
+                ? 'Descuento negociado'
+                : diferencia > 0n
+                    ? 'Incremento negociado'
+                    : 'Diferencia negociada';
+
+        $('#rp-diferencia').textContent =
+            moneda.format(
+                diferencia < 0n ? -diferencia : diferencia
+            );
+
+        let error = '';
+
+        if (
+            total > LIMITE_TOTAL ||
+            acordado > LIMITE_TOTAL
+        ) {
+
+            error = 'La compra supera el valor máximo permitido.';
+
+        } else if (
+            productos > MAX_PRODUCTOS ||
+            lineas > MAX_LINEAS ||
+            tarjetas().some(t => filas(t).length > MAX_TIPOS)
+        ) {
+
+            error = 'Superaste el máximo de productos o presentaciones.';
+        }
+
+        $('#rp-error-total').textContent = error;
+        $('#rp-error-total').hidden = !error;
+
+        return !error;
+    }
+
+    // =====================================================
+    // ACTUALIZACIÓN GENERAL
+    // =====================================================
+
+    function actualizar() {
+
+        tarjetas().forEach(tarjeta => {
+
+            const presentaciones = filas(tarjeta);
+
+            presentaciones.forEach(fila => {
+
+                actualizarPresentacion(tarjeta, fila);
+
+                fila.querySelector('[data-eliminar-tipo]')
+                    .disabled =
+                        enviando ||
+                        presentaciones.length <= 1;
+            });
 
             tarjeta.querySelector('[data-agregar-tipo]')
                 .disabled =
-                    filas.length >= MAX_TIPOS ||
-                    totalTipos() >= MAX_TIPOS_TOTAL;
+                    enviando ||
+                    presentaciones.length >= MAX_TIPOS ||
+                    totalLineas() >= MAX_LINEAS;
 
+            // Nunca bloquear la eliminación por cantidad.
+
+            tarjeta.querySelector('[data-eliminar-producto]')
+                .disabled = enviando;
         });
 
-        modal.querySelector('#rp-total-productos')
-            .textContent = numero.format(productos.length);
+        reindexar();
+        validarDuplicados();
+        actualizarProveedor();
 
-        modal.querySelector('#rp-total-tipos')
-            .textContent = `${cantidadTipos} tipos`;
-
-        modal.querySelector('#rp-total')
-            .textContent = moneda.format(total);
-
-        const proveedoresDisponibles =
-            selectorProveedor.options.length > 1;
-
-        sinProveedores.hidden = proveedoresDisponibles;
-
-        avisoTotal.hidden = total <= LIMITE_TOTAL;
+        const valido = actualizarTotales();
 
         agregarProducto.disabled =
-            !catalogoCargado ||
-            productos.length >= MAX_PRODUCTOS ||
-            cantidadTipos >= MAX_TIPOS_TOTAL;
+            !cargado ||
+            enviando ||
+            tarjetas().length >= MAX_PRODUCTOS ||
+            totalLineas() >= MAX_LINEAS;
 
         guardar.disabled =
-            !catalogoCargado ||
-            !proveedoresDisponibles ||
-            productos.length === 0 ||
-            total > LIMITE_TOTAL ||
-            enviando;
+            !cargado ||
+            enviando ||
+            tarjetas().length === 0 ||
+            !valido;
 
-        actualizarTitulos();
-
+        return valido;
     }
 
     // =====================================================
-    // EVENTOS DINÁMICOS
-    // =====================================================
-
-    agregarProducto.addEventListener('click', () => {
-
-        const tarjeta = agregarTarjeta();
-
-        tarjeta?.querySelector(
-            '[data-selector-producto]'
-        ).focus();
-
-    });
-
-    lista.addEventListener('change', event => {
-
-        const selector = event.target.closest(
-            '[data-selector-producto]'
-        );
-
-        if (!selector) return;
-
-        const tarjeta = selector.closest('.rp-product-card');
-
-        const anterior = selector.dataset.anterior || '';
-
-        if (anterior !== selector.value && anterior !== '') {
-
-            const tieneDatos = Array.from(
-                tarjeta.querySelectorAll('.rp-quality input')
-            ).some(input => input.value.trim() !== '');
-
-            if (
-                tieneDatos &&
-                !confirm('¿Cambiar el producto? Se reiniciarán sus tipos y cantidades.')
-            ) {
-
-                selector.value = anterior;
-
-                return;
-
-            }
-
-            tarjeta.querySelector('[data-contenedor-tipos]')
-                .replaceChildren();
-
-            tarjeta.querySelector('[data-producto-campo="nombre"]')
-                .value = '';
-
-            tarjeta.querySelector('[data-producto-campo="descripcion"]')
-                .value = '';
-
-            tarjeta.querySelector('[data-producto-campo="unidad_comercial"]')
-                .value = '';
-
-            configurarProducto(tarjeta);
-
-            agregarTipo(tarjeta);
-
-        } else {
-
-            configurarProducto(tarjeta);
-
-        }
-
-        selector.dataset.anterior = selector.value;
-
-        sugerirProveedor(true);
-
-        actualizar();
-
-    });
-
-    lista.addEventListener('input', event => {
-
-        const tarjeta = event.target.closest('.rp-product-card');
-
-        const fila = event.target.closest('.rp-quality');
-
-        if (tarjeta && fila && event.target.dataset.campo === 'nombre') {
-
-            configurarTipo(tarjeta, fila);
-
-        }
-
-        actualizar();
-
-    });
-
-    lista.addEventListener('click', event => {
-
-        const tarjeta = event.target.closest('.rp-product-card');
-
-        if (!tarjeta) return;
-
-        // Agregar tipo.
-
-        if (event.target.closest('[data-agregar-tipo]')) {
-
-            const fila = agregarTipo(tarjeta);
-
-            fila?.querySelector('[data-campo="nombre"]').focus();
-
-        }
-
-        // Eliminar tipo.
-
-        const eliminarTipo = event.target.closest(
-            '[data-eliminar-tipo]'
-        );
-
-        if (eliminarTipo && !eliminarTipo.disabled) {
-
-            eliminarTipo.closest('.rp-quality').remove();
-
-        }
-
-        // Eliminar producto.
-
-        const eliminarProducto = event.target.closest(
-            '[data-eliminar-producto]'
-        );
-
-        if (eliminarProducto && !eliminarProducto.disabled) {
-
-            tarjeta.remove();
-
-            sugerirProveedor();
-
-        }
-
-        actualizar();
-
-    });
-
-    selectorProveedor.addEventListener('change', () => {
-
-        sugerirProveedor();
-
-        actualizar();
-
-    });
-
-    // =====================================================
-    // REGISTRO INTEGRADO DE PROVEEDORES
-    // =====================================================
-
-    const nuevoProveedor = modal.querySelector(
-        '#rp-nuevo-proveedor'
-    );
-
-    const modalProveedor = document.getElementById(
-        'rp-modal-proveedor'
-    );
-
-    if (nuevoProveedor && modalProveedor) {
-
-        const formProveedor = modalProveedor.querySelector(
-            '#rp-form-proveedor'
-        );
-
-        const errorProveedor = modalProveedor.querySelector(
-            '#rp-error-proveedor'
-        );
-
-        const btnGuardar = modalProveedor.querySelector(
-            '#rp-guardar-proveedor'
-        );
-
-        const btnCancelar = modalProveedor.querySelector(
-            '#rp-cancelar-proveedor'
-        );
-
-        nuevoProveedor.addEventListener('click', () => {
-
-            formProveedor.reset();
-
-            errorProveedor.hidden = true;
-
-            modalProveedor.showModal();
-
-        });
-
-        btnCancelar.addEventListener('click', () => {
-
-            modalProveedor.close();
-
-        });
-
-        modalProveedor.addEventListener('cancel', event => {
-
-            if (btnGuardar.disabled) {
-
-                event.preventDefault();
-
-            }
-
-        });
-
-        formProveedor.addEventListener('submit', async event => {
-
-            event.preventDefault();
-
-            if (btnGuardar.disabled) return;
-
-            const datos = new FormData(formProveedor);
-
-            errorProveedor.hidden = true;
-
-            btnGuardar.disabled = true;
-            btnCancelar.disabled = true;
-
-            try {
-
-                const respuesta = await api('/proveedores', {
-
-                    method: 'POST',
-
-                    body: JSON.stringify({
-
-                        nombre: texto(datos.get('nombre')).trim(),
-
-                        telefono:
-                            texto(datos.get('telefono')).trim() || null,
-
-                        contacto:
-                            texto(datos.get('contacto')).trim() || null,
-
-                        consentimiento:
-                            datos.has('consentimiento')
-
-                    })
-
-                });
-
-                if (!respuesta?.ok || !respuesta.proveedor) {
-
-                    throw new Error(
-                        respuesta?.mensaje ||
-                        'No se pudo registrar el proveedor.'
-                    );
-
-                }
-
-                const proveedor = respuesta.proveedor;
-
-                const existe = Array.from(selectorProveedor.options)
-                    .some(opcion => opcion.value === String(proveedor.id));
-
-                if (!existe) {
-
-                    selectorProveedor.add(
-                        new Option(
-                            proveedor.nombre,
-                            String(proveedor.id)
-                        )
-                    );
-
-                }
-
-                selectorProveedor.value = String(proveedor.id);
-
-                modalProveedor.close();
-
-                sugerirProveedor();
-
-                actualizar();
-
-                selectorProveedor.focus();
-
-            } catch (error) {
-
-                if (error.message !== 'sin sesion') {
-
-                    errorProveedor.textContent = error.message;
-
-                    errorProveedor.hidden = false;
-
-                }
-
-            } finally {
-
-                btnGuardar.disabled = false;
-
-                btnCancelar.disabled = false;
-
-            }
-
-        });
-
-    }
-
-    // =====================================================
-    // RECUPERAR FORMULARIO ANTE ERRORES
+    // RESTAURAR FORMULARIO
     // =====================================================
 
     function restaurarFormulario() {
@@ -1005,79 +906,393 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
 
-            anteriores = comoLista(
-                JSON.parse(modal.dataset.productosPrevios || '[]')
-            );
+            anteriores = comoLista(JSON.parse(
+                modal.dataset.productosPrevios || '[]'
+            ));
 
         } catch {
 
             anteriores = [];
-
         }
+
+        lista.replaceChildren();
 
         if (anteriores.length) {
 
-            anteriores.slice(0, MAX_PRODUCTOS)
-                .forEach(producto => agregarTarjeta(producto));
+            anteriores.forEach(datos =>
+                crearProducto(datos)
+            );
 
         } else {
 
-            agregarTarjeta();
-
+            crearProducto();
         }
-
-        sugerirProveedor();
-
     }
 
     // =====================================================
-    // PREVENIR DOBLE ENVÍO
+    // GENERAR DOCUMENTO INTERNO
     // =====================================================
 
-    form.addEventListener('submit', event => {
+    $('#rp-generar-documento')
+        .addEventListener('click', () => {
 
-        if (enviando || guardar.disabled) {
+            if (
+                documento.value &&
+                !confirm('¿Reemplazar la referencia actual?')
+            ) return;
 
-            event.preventDefault();
+            if (window.crypto?.getRandomValues) {
+
+                const aleatorio = new Uint32Array(1);
+
+                window.crypto.getRandomValues(aleatorio);
+
+                documento.value =
+                    `INT-${10000000 + aleatorio[0] % 90000000}`;
+
+            } else {
+
+                documento.value =
+                    $('#rp-generar-documento').dataset.referencia;
+            }
+        });
+
+    // =====================================================
+    // EVENTOS DE PRODUCTOS
+    // =====================================================
+
+    agregarProducto.addEventListener('click', () => {
+
+        if (
+            !cargado ||
+            enviando ||
+            tarjetas().length >= MAX_PRODUCTOS ||
+            totalLineas() >= MAX_LINEAS
+        ) return;
+
+        const tarjeta = crearProducto();
+
+        actualizar();
+
+        selectorProducto(tarjeta).focus();
+    });
+
+    lista.addEventListener('change', evento => {
+
+        const elemento = evento.target;
+        const tarjeta = elemento.closest('.rp-product-card');
+
+        if (!tarjeta) return;
+
+        if (elemento.matches('[data-selector-producto]')) {
+
+            const anterior = elemento.dataset.anterior || '';
+
+            const tieneDatos = filas(tarjeta).some(fila =>
+                Array.from(fila.querySelectorAll('[data-campo]'))
+                    .some(input => input.value !== '')
+            ) || campoProducto(tarjeta, 'nombre').value !== '';
+
+            if (
+                anterior &&
+                anterior !== elemento.value &&
+                tieneDatos
+            ) {
+
+                if (!confirm(
+                    'Cambiar el producto eliminará sus presentaciones actuales. ¿Continuar?'
+                )) {
+
+                    elemento.value = anterior;
+
+                    actualizar();
+
+                    return;
+                }
+            }
+
+            if (anterior !== elemento.value) {
+
+                campoProducto(tarjeta, 'nombre').value = '';
+
+                elemento.dataset.anterior = elemento.value;
+
+                configurarProducto(tarjeta);
+
+                tarjeta.querySelector('[data-contenedor-tipos]')
+                    .replaceChildren();
+
+                crearPresentacion(tarjeta);
+            }
+
+        } else if (elemento.matches('[data-selector-tipo]')) {
+
+            const fila = elemento.closest('.rp-quality');
+
+            nuevoTipo(fila).value = '';
+
+            sincronizarTipo(tarjeta, fila);
+
+            if (elemento.value === NUEVO_TIPO) {
+                nuevoTipo(fila).focus();
+            }
+        }
+
+        actualizar();
+    });
+
+    lista.addEventListener('input', evento => {
+
+        if (!evento.target.matches('select')) {
+            actualizar();
+        }
+    });
+
+    usarAcordado.addEventListener('change', () => {
+
+        if (
+            usarAcordado.checked &&
+            !valorAcordado.value
+        ) {
+
+            const total = calcularTotal();
+
+            if (total > 0n && total <= LIMITE_TOTAL) {
+                valorAcordado.value = total.toString();
+            }
+        }
+
+        actualizar();
+
+        if (usarAcordado.checked) {
+            valorAcordado.focus();
+        }
+    });
+
+    valorAcordado.addEventListener('input', actualizar);
+    proveedor.addEventListener('change', actualizar);
+
+    // =====================================================
+    // GUARDAR COMPRA
+    // =====================================================
+
+    form.addEventListener('submit', evento => {
+
+        if (
+            enviando ||
+            !cargado ||
+            tarjetas().length === 0 ||
+            !actualizar() ||
+            !form.reportValidity()
+        ) {
+
+            evento.preventDefault();
 
             return;
-
         }
 
         enviando = true;
 
         guardar.disabled = true;
+        agregarProducto.disabled = true;
 
-        guardar.textContent = 'Registrando mercancía...';
+        guardar.textContent = 'Registrando entrada...';
 
+        actualizar();
     });
 
-    // =====================================================
-    // CIERRE E INICIALIZACIÓN
-    // =====================================================
+    modal.querySelectorAll('[data-rp-close]')
+        .forEach(boton => {
 
-    modal.querySelectorAll('[data-rp-close]').forEach(boton => {
+            boton.addEventListener('click', () => {
 
-        boton.addEventListener('click', () => {
-
-            if (!enviando) modal.close();
-
+                if (!enviando) modal.close();
+            });
         });
 
+    modal.addEventListener('cancel', evento => {
+
+        if (enviando) evento.preventDefault();
     });
 
-    modal.addEventListener('cancel', event => {
+    window.addEventListener('pageshow', evento => {
 
-        if (enviando) event.preventDefault();
+        if (evento.persisted) {
 
+            enviando = false;
+
+            guardar.textContent =
+                'Registrar entrada de mercancía';
+
+            actualizar();
+        }
     });
 
-    cargarCatalogo();
+    // =====================================================
+    // REGISTRO INDEPENDIENTE DE PROVEEDORES
+    // =====================================================
 
-    if (modal.dataset.reabrir === '1' && !modal.open) {
+    const modalProveedor = document.getElementById(
+        'rp-modal-proveedor'
+    );
+
+    if (modalProveedor) {
+
+        const formProveedor = modalProveedor.querySelector(
+            '#rp-form-proveedor'
+        );
+
+        const guardarProveedor = modalProveedor.querySelector(
+            '#rp-guardar-proveedor'
+        );
+
+        const cancelarProveedor = modalProveedor.querySelector(
+            '#rp-cancelar-proveedor'
+        );
+
+        const errorProveedor = modalProveedor.querySelector(
+            '#rp-error-proveedor'
+        );
+
+        let guardando = false;
+
+        function mostrarError(mensaje = '') {
+
+            errorProveedor.textContent = mensaje;
+            errorProveedor.hidden = !mensaje;
+        }
+
+        $('#rp-nuevo-proveedor')
+            .addEventListener('click', () => {
+
+                mostrarError();
+
+                if (!modalProveedor.open) {
+                    modalProveedor.showModal();
+                }
+            });
+
+        cancelarProveedor.addEventListener('click', () => {
+
+            if (!guardando) modalProveedor.close();
+        });
+
+        modalProveedor.addEventListener('cancel', evento => {
+
+            if (guardando) evento.preventDefault();
+        });
+
+        formProveedor.addEventListener(
+            'submit',
+            async evento => {
+
+                evento.preventDefault();
+
+                if (
+                    guardando ||
+                    !formProveedor.reportValidity()
+                ) return;
+
+                mostrarError();
+
+                const datos = new FormData(formProveedor);
+
+                guardando = true;
+
+                guardarProveedor.disabled = true;
+                cancelarProveedor.disabled = true;
+
+                guardarProveedor.textContent = 'Guardando...';
+
+                try {
+
+                    const respuesta = await api('/proveedores', {
+
+                        method: 'POST',
+
+                        body: JSON.stringify({
+
+                            nombre: limpiar(datos.get('nombre')),
+
+                            telefono:
+                                limpiar(datos.get('telefono')) || null,
+
+                            contacto:
+                                limpiar(datos.get('contacto')) || null,
+
+                            consentimiento:
+                                datos.get('consentimiento') === '1'
+                        })
+                    });
+
+                    if (
+                        !respuesta?.ok ||
+                        !respuesta.proveedor?.id
+                    ) {
+
+                        mostrarError(
+                            respuesta?.mensaje ||
+                            respuesta?.message ||
+                            'No se pudo registrar el proveedor.'
+                        );
+
+                        return;
+                    }
+
+                    const nuevo = respuesta.proveedor;
+                    const id = String(nuevo.id);
+
+                    const existente = Array.from(proveedor.options)
+                        .find(o => o.value === id);
+
+                    if (!existente) {
+                        proveedor.add(
+                            new Option(nuevo.nombre, id)
+                        );
+                    }
+
+                    proveedor.value = id;
+
+                    formProveedor.reset();
+                    modalProveedor.close();
+
+                    actualizar();
+
+                } catch (error) {
+
+                    if (error.message !== 'sin sesion') {
+
+                        mostrarError(
+                            'No se pudo confirmar el registro del proveedor.'
+                        );
+                    }
+
+                } finally {
+
+                    guardando = false;
+
+                    guardarProveedor.disabled = false;
+                    cancelarProveedor.disabled = false;
+
+                    guardarProveedor.textContent =
+                        'Guardar proveedor';
+                }
+            }
+        );
+    }
+
+    // =====================================================
+    // INICIALIZACIÓN
+    // =====================================================
+
+    if (
+        modal.dataset.reabrir === '1' &&
+        !modal.open
+    ) {
 
         modal.showModal();
-
     }
+
+    cargarCatalogo();
 
 });

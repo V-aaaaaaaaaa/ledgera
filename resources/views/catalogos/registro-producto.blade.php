@@ -1,5 +1,7 @@
 @php
     $valor = static fn ($v) => is_scalar($v) ? $v : '';
+    $unidades = \App\Services\InventarioService::UNIDADES;
+    $acordadoAnterior = $valor(old('valor_acordado'));
 @endphp
 
 @push('estilos')
@@ -19,10 +21,7 @@
 
         @csrf
 
-        {{-- ENCABEZADO --}}
-
         <header class="rp-header">
-
             <div class="rp-icon">
                 <i class="fas fa-truck-loading"></i>
             </div>
@@ -38,26 +37,21 @@
                     aria-label="Cerrar formulario">
                 &times;
             </button>
-
         </header>
-
-        {{-- ERRORES DEL SERVIDOR --}}
 
         @if($errors->producto->any())
             <div class="cat-message error" role="alert">
-
                 @foreach($errors->producto->all() as $error)
                     <div>{{ $error }}</div>
                 @endforeach
-
             </div>
         @endif
 
-        {{-- 01. ORIGEN DE LA MERCANCÍA --}}
+        {{-- 01. INFORMACIÓN DE LA COMPRA --}}
 
         <section class="rp-section">
 
-            <h3><span>01</span> Origen de la mercancía</h3>
+            <h3><span>01</span> Información de la compra</h3>
 
             <div class="rp-provider-row">
 
@@ -71,39 +65,32 @@
                         <option value="">Seleccionar proveedor</option>
 
                         @foreach($proveedores as $proveedor)
-
                             <option value="{{ $proveedor->id_proveedor }}"
-                                @selected((string) $valor(old('id_proveedor')) === (string) $proveedor->id_proveedor)>
-
+                                @selected(
+                                    (string) $valor(old('id_proveedor'))
+                                    === (string) $proveedor->id_proveedor
+                                )>
                                 {{ $proveedor->nombre_razon_social }}
-
                             </option>
-
                         @endforeach
 
                     </select>
-
                 </label>
 
                 @if($esDueno)
-
                     <button type="button"
                             class="cat-secondary"
                             id="rp-nuevo-proveedor">
-
                         <i class="fas fa-plus"></i>
                         Nuevo proveedor
-
                     </button>
-
                 @endif
 
             </div>
 
             <p class="rp-note"
                id="rp-sugerencia-proveedor"
-               hidden>
-            </p>
+               hidden></p>
 
             <p class="rp-note"
                id="rp-sin-proveedores"
@@ -127,7 +114,6 @@
                            max="{{ now()->toDateString() }}"
                            value="{{ $valor(old('fecha_entrada', now()->toDateString())) }}"
                            required>
-
                 </label>
 
                 <div class="rp-documento">
@@ -141,7 +127,6 @@
                                value="{{ $valor(old('documento_soporte')) }}"
                                placeholder="Número de factura"
                                required>
-
                     </label>
 
                     <button type="button"
@@ -151,7 +136,6 @@
 
                         <i class="fas fa-file-alt"></i>
                         Generar referencia interna
-
                     </button>
 
                     <p class="rp-note">
@@ -171,14 +155,13 @@
             <h3><span>02</span> Productos recibidos</h3>
 
             <p class="rp-help">
-                Selecciona productos existentes o registra nuevos.
-                Puedes incluir varios productos en una misma factura.
+                Agrega los productos y sus respectivas presentaciones.
             </p>
 
             <p id="rp-estado-carga"
                class="rp-note"
                role="status">
-                Cargando catálogo de productos...
+                Cargando catálogo...
             </p>
 
             <div id="rp-productos"></div>
@@ -190,12 +173,11 @@
 
                 <i class="fas fa-plus"></i>
                 Agregar producto
-
             </button>
 
         </section>
 
-        {{-- PLANTILLA DINÁMICA DE PRODUCTOS --}}
+        {{-- PLANTILLA DE PRODUCTO --}}
 
         <template id="rp-template-producto">
 
@@ -203,9 +185,7 @@
 
                 <header class="rp-product-header">
 
-                    <h4 data-titulo-producto>
-                        Producto
-                    </h4>
+                    <h4 data-titulo-producto>Producto</h4>
 
                     <button type="button"
                             class="rp-remove"
@@ -213,7 +193,6 @@
                             aria-label="Eliminar producto">
 
                         <i class="fas fa-trash"></i>
-
                     </button>
 
                 </header>
@@ -232,73 +211,31 @@
                         </option>
 
                     </select>
-
                 </label>
 
                 <input type="hidden"
                        data-producto-campo="id_producto">
 
-                <div class="rp-grid">
+                <label data-nombre-nuevo hidden>
 
-                    <label data-nombre-nuevo hidden>
+                    Nombre del nuevo producto *
 
-                        Nombre del producto *
-
-                        <input data-producto-campo="nombre"
-                               maxlength="100"
-                               minlength="2"
-                               placeholder="Ej. Fresas"
-                               disabled>
-
-                    </label>
-
-                    <label>
-                        Unidad comercial *
-
-                        <select data-producto-campo="unidad_comercial"
-                                required>
-
-                            <option value="">Seleccionar unidad</option>
-                            <option value="Bulto">Bulto</option>
-                            <option value="Roa">Roa</option>
-                            <option value="Canastilla">Canastilla</option>
-                            <option value="Canasta">Canasta</option>
-
-                        </select>
-
-                    </label>
-
-                </div>
-
-                <label data-descripcion-nueva hidden>
-
-                    Descripción (opcional)
-
-                    <textarea data-producto-campo="descripcion"
-                              rows="2"
-                              maxlength="1000"
-                              disabled></textarea>
-
+                    <input data-producto-campo="nombre"
+                           maxlength="100"
+                           minlength="2"
+                           placeholder="Ej. Zanahoria"
+                           disabled>
                 </label>
-
-                <div class="rp-product-info"
-                     data-info-producto
-                     hidden>
-                </div>
-
-                {{-- TIPOS DEL PRODUCTO --}}
 
                 <div class="rp-types-header">
 
-                    <h4>Tipos de producto</h4>
+                    <h4>Tipos y presentaciones</h4>
 
                     <p class="rp-help">
-                        Selecciona un tipo existente o escribe uno nuevo.
+                        Selecciona un tipo y su unidad comercial.
                     </p>
 
                 </div>
-
-                <datalist data-lista-tipos></datalist>
 
                 <div data-contenedor-tipos></div>
 
@@ -307,23 +244,20 @@
                         data-agregar-tipo>
 
                     <i class="fas fa-plus"></i>
-                    Agregar tipo
-
+                    Agregar presentación
                 </button>
 
                 <div class="rp-product-total">
-
                     Subtotal del producto:
 
                     <strong data-total-producto>$0</strong>
-
                 </div>
 
             </article>
 
         </template>
 
-        {{-- PLANTILLA DINÁMICA DE TIPOS --}}
+        {{-- PLANTILLA DE PRESENTACIÓN --}}
 
         <template id="rp-template-tipo">
 
@@ -332,26 +266,61 @@
                 <label>
                     Tipo *
 
-                    <input data-campo="nombre"
-                           placeholder="Ej. Grande"
+                    <select data-selector-tipo required>
+
+                        <option value="">
+                            Seleccionar tipo
+                        </option>
+
+                        <option value="__nuevo__">
+                            + Registrar nuevo tipo
+                        </option>
+
+                    </select>
+
+                    <input type="text"
+                           data-nombre-tipo-nuevo
                            maxlength="100"
-                           required>
+                           placeholder="Nombre del nuevo tipo"
+                           aria-label="Nombre del nuevo tipo"
+                           hidden
+                           disabled>
 
-                    <small data-stock-tipo
-                           class="rp-note"></small>
-
+                    <input type="hidden"
+                           data-campo="nombre">
                 </label>
 
                 <label>
-                    Cantidad *
+                    Unidad comercial *
+
+                    <select data-campo="unidad_comercial" required>
+
+                        <option value="">
+                            Seleccionar unidad
+                        </option>
+
+                        @foreach($unidades as $unidad)
+                            <option value="{{ $unidad }}">
+                                {{ $unidad }}
+                            </option>
+                        @endforeach
+
+                    </select>
+
+                    <small data-stock-tipo
+                           class="rp-note"></small>
+                </label>
+
+                <label>
+                    Cantidad recibida *
 
                     <input data-campo="cantidad"
                            type="number"
                            min="1"
                            max="1000000"
                            step="1"
+                           placeholder="0"
                            required>
-
                 </label>
 
                 <label>
@@ -362,71 +331,130 @@
                            min="1"
                            max="9999999999"
                            step="1"
+                           placeholder="COP"
                            required>
-
                 </label>
 
                 <label>
-                    Precio de venta
+                    Precio de venta unitario
 
                     <input data-campo="precio"
                            type="number"
                            min="1"
                            max="9999999999"
-                           step="1">
+                           step="1"
+                           placeholder="COP">
 
                     <small data-info-precio
                            class="rp-note"></small>
-
                 </label>
 
                 <button type="button"
                         class="rp-remove"
                         data-eliminar-tipo
-                        aria-label="Eliminar tipo">
+                        aria-label="Eliminar presentación">
 
                     <i class="fas fa-trash"></i>
-
                 </button>
 
                 <div class="rp-subtotal">
-
                     Subtotal de compra:
 
                     <strong data-subtotal>$0</strong>
-
                 </div>
 
             </div>
 
         </template>
 
-        {{-- 03. RESUMEN DE LA COMPRA --}}
+        {{-- 03. RESUMEN FINANCIERO --}}
 
         <section class="rp-section">
 
-            <h3><span>03</span> Resumen de la compra</h3>
+            <h3><span>03</span> Resumen financiero</h3>
 
             <div class="rp-summary" aria-live="polite">
 
                 <div>
-
-                    <small>Productos registrados en la entrada</small>
-
+                    <small>Productos en la compra</small>
                     <strong id="rp-total-productos">0</strong>
-
-                    <span id="rp-total-tipos">0 tipos</span>
-
+                    <span id="rp-total-tipos">0 presentaciones</span>
                 </div>
 
                 <div>
-
-                    <small>Costo total de adquisición</small>
-
+                    <small>Costo total calculado</small>
                     <strong id="rp-total">$0</strong>
-
                     <span>COP</span>
+                </div>
 
+            </div>
+
+            <div class="rp-negociacion">
+
+                <h4>Valor negociado con el proveedor</h4>
+
+                <p class="rp-help">
+                    Registra un valor diferente si hubo una negociación.
+                </p>
+
+                <label class="rp-negociacion-control">
+
+                    <input type="checkbox"
+                           id="rp-usar-valor-acordado"
+                           @checked($acordadoAnterior !== '')>
+
+                    Registrar un valor negociado diferente
+                </label>
+
+                <div id="rp-campo-valor-acordado"
+                     @if($acordadoAnterior === '') hidden @endif>
+
+                    <label>
+                        Valor acordado *
+
+                        <input type="number"
+                               name="valor_acordado"
+                               id="rp-valor-acordado"
+                               min="1"
+                               max="9999999999"
+                               step="1"
+                               value="{{ $acordadoAnterior }}"
+                               placeholder="COP"
+                               @disabled($acordadoAnterior === '')>
+                    </label>
+
+                </div>
+
+            </div>
+
+            <div class="rp-financial-summary"
+                 aria-live="polite">
+
+                <div class="rp-financial-row">
+                    <span>Valor calculado</span>
+                    <strong id="rp-valor-calculado">$0</strong>
+                </div>
+
+                <div class="rp-financial-row">
+                    <span id="rp-diferencia-etiqueta">
+                        Diferencia negociada
+                    </span>
+                    <strong id="rp-diferencia">$0</strong>
+                </div>
+
+                <div class="rp-financial-row rp-financial-total">
+                    <span>Valor definitivo de la compra</span>
+                    <strong id="rp-total-acordado">$0</strong>
+                </div>
+
+                <div class="rp-financial-row">
+                    <span>Pago registrado</span>
+                    <strong>$0</strong>
+                </div>
+
+                <div class="rp-financial-row rp-financial-pending">
+                    <span>Saldo pendiente con el proveedor</span>
+                    <strong id="rp-saldo-pendiente">$0</strong>
                 </div>
 
             </div>
@@ -435,33 +463,27 @@
 
                 <i class="fas fa-info-circle"></i>
 
-                La mercancía ingresará al inventario.
-                La compra quedará pendiente de pago,
-                sin descontar dinero de caja.
+                La compra quedará pendiente de pago.
+
+                @if($esDueno)
+                    Puedes registrar el pago desde Egresos.
+                @endif
 
             </p>
 
             <p id="rp-error-total"
                class="cat-message error"
                role="alert"
-               hidden>
-
-                El valor de la compra supera el máximo permitido.
-
-            </p>
+               hidden></p>
 
         </section>
 
-        {{-- ACCIONES --}}
-
-        <div class="cat-modal-actions">
+        <div class="cat-modal-actions rp-footer">
 
             <button type="button"
                     class="cat-secondary"
                     data-rp-close>
-
                 Cancelar
-
             </button>
 
             <button type="submit"
@@ -471,7 +493,6 @@
 
                 <i class="fas fa-check"></i>
                 Registrar entrada de mercancía
-
             </button>
 
         </div>
@@ -480,9 +501,7 @@
 
 </dialog>
 
-{{-- ==========================================
-     REGISTRO INDEPENDIENTE DE PROVEEDORES
-     ========================================== --}}
+{{-- REGISTRO DE PROVEEDORES: EXCLUSIVO DEL DUEÑO --}}
 
 @if($esDueno)
 
@@ -501,13 +520,8 @@
                 <i class="fas fa-truck"></i>
 
                 <div>
-
-                    <h2 id="rp-titulo-proveedor">
-                        Nuevo proveedor
-                    </h2>
-
+                    <h2 id="rp-titulo-proveedor">Nuevo proveedor</h2>
                     <p>Agrega un proveedor a tu negocio.</p>
-
                 </div>
 
             </header>
@@ -517,9 +531,7 @@
 
                 <input name="nombre"
                        maxlength="150"
-                       placeholder="Ej. Distribuidora San Pedro"
                        required>
-
             </label>
 
             <label>
@@ -528,18 +540,14 @@
                 <input name="telefono"
                        type="tel"
                        maxlength="10"
-                       pattern="[0-9]{7,10}"
-                       placeholder="Número de contacto">
-
+                       pattern="[0-9]{7,10}">
             </label>
 
             <label>
                 Contacto principal
 
                 <input name="contacto"
-                       maxlength="100"
-                       placeholder="Nombre del contacto">
-
+                       maxlength="100">
             </label>
 
             <label class="cat-consent">
@@ -549,33 +557,27 @@
                        value="1"
                        required>
 
-                Confirmo que el proveedor autorizó
-                el tratamiento de sus datos.
-
+                Confirmo que el proveedor autorizó el
+                tratamiento de sus datos.
             </label>
 
             <div id="rp-error-proveedor"
                  class="cat-message error"
                  role="alert"
-                 hidden>
-            </div>
+                 hidden></div>
 
             <div class="cat-modal-actions">
 
                 <button type="button"
                         class="cat-secondary"
                         id="rp-cancelar-proveedor">
-
                     Cancelar
-
                 </button>
 
                 <button type="submit"
                         class="cat-primary"
                         id="rp-guardar-proveedor">
-
                     Guardar proveedor
-
                 </button>
 
             </div>
