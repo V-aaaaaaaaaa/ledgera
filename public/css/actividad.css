@@ -1,0 +1,90 @@
+/* =====================================================
+   LEDGERA · Actividad del negocio (color morado: tema-auditoria)
+   ===================================================== */
+
+.act { max-width: 760px; margin: 0 auto; }
+.act__intro { margin: 0 0 14px; color: var(--texto-suave); font-size: 15px; }
+
+.act__filtros { padding: 14px; margin-bottom: 14px; border: 1px solid var(--borde); border-radius: 16px; background: #fff; }
+
+.act__atajos, .act__tipos { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+
+.act__atajos button, .act__tipos button {
+    min-height: 40px;
+    padding: 6px 14px;
+    border: 2px solid var(--borde);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--acento-oscuro);
+    font: 600 14px inherit;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.act__atajos button.activo, .act__tipos button.activo { border-color: var(--acento); background: var(--claro); color: var(--acento); }
+
+.act__fila { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; align-items: flex-end; }
+.act__fila label { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 140px; font-size: 13px; font-weight: 700; color: var(--acento-oscuro); }
+
+.act__fila input, .act__fila select {
+    min-height: 44px;
+    padding: 8px 12px;
+    border: 2px solid var(--borde);
+    border-radius: 10px;
+    background: var(--suave);
+    font: 15px inherit;
+    font-family: inherit;
+    color: var(--acento-oscuro);
+}
+
+.act__fila input[type="search"] { flex: 1; min-width: 200px; }
+
+.act__limpiar { min-height: 44px; padding: 0 14px; border: none; background: none; color: var(--acento); font: 700 14px inherit; font-family: inherit; text-decoration: underline; cursor: pointer; }
+
+.act__resumen { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.act__dato { padding: 12px; border-radius: 14px; background: #fff; border: 1px solid var(--borde); }
+.act__dato span { display: block; font-size: 13px; color: var(--texto-suave); }
+.act__dato strong { font-size: 1.25rem; color: var(--acento-oscuro); }
+.act__dato em { display: block; margin-top: 4px; font-size: 12px; font-style: normal; color: #b3261e; font-weight: 600; }
+
+.act__msg { padding: 10px 14px; border-radius: 10px; background: #FDECEA; color: #b3261e; font-weight: 600; }
+.act__msg[hidden], .act__vacio[hidden], .act__mas[hidden] { display: none; }
+
+.act__lista { margin: 0; padding: 0; list-style: none; }
+.act__dia { margin: 16px 0 6px; font-size: 13px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; color: var(--texto-suave); }
+
+.act__item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 12px;
+    margin-bottom: 8px;
+    border: 1px solid var(--borde);
+    border-radius: 14px;
+    background: #fff;
+}
+
+.act__item--alerta { border-left: 5px solid #E0A800; }
+
+.act__icono { width: 38px; height: 38px; flex-shrink: 0; display: grid; place-items: center; border-radius: 50%; background: var(--claro); color: var(--acento); }
+.act__icono--venta { background: #E6F4EA; color: #1a6a2a; }
+.act__icono--venta-anulada { background: #FDECEA; color: #b3261e; }
+.act__icono--abono { background: #E8F0FB; color: #1d4f91; }
+.act__icono--egreso { background: #FBE9EE; color: #8e1e3e; }
+.act__icono--entrada-de-mercancia { background: #FFF2DE; color: #8a5a00; }
+.act__icono--ajuste-de-inventario { background: #FFF2DE; color: #a14a00; }
+
+.act__cuerpo { flex: 1; min-width: 0; }
+.act__cuerpo p { margin: 0 0 2px; }
+.act__detalle { color: #1C1C1C; font-size: 15px; overflow-wrap: anywhere; }
+.act__cuerpo small { color: var(--texto-suave); }
+
+.act__alerta { margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: #FFF2DE; color: #8a5a00; font-size: 12px; font-weight: 700; }
+
+.act__valor { text-align: right; white-space: nowrap; }
+.act__valor strong { display: block; font-size: 1.05rem; color: var(--acento-oscuro); }
+.act__valor small { color: var(--texto-suave); }
+
+.act__vacio { padding: 30px; text-align: center; color: var(--texto-suave); }
+
+.act__mas { width: 100%; min-height: 50px; margin-top: 8px; border: 2px dashed var(--borde); border-radius: 12px; background: transparent; color: var(--acento); font: 700 16px inherit; font-family: inherit; cursor: pointer; }

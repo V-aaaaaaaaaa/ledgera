@@ -35,7 +35,8 @@ class ProveedorController extends Controller
 
         $consulta = Proveedor::where('id_puesto', $actor->id_puesto);
 
-        if ($actor->rol !== 'Dueno') {
+        // Quien no gestiona proveedores (Vendedor normal) solo ve los activos
+        if (!$actor->puede('gestionar_proveedores')) {
             $consulta->where('estado', 'Activo');
         }
 
@@ -45,7 +46,11 @@ class ProveedorController extends Controller
             ->get()
             ->map(fn (Proveedor $p) => $p->paraPantalla());
 
-        return response()->json(['ok' => true, 'proveedores' => $proveedores]);
+        return response()->json([
+            'ok' => true,
+            'proveedores' => $proveedores,
+            'puede_desactivar' => $actor->rol === 'Dueno',   // nunca se delega
+        ]);
     }
 
     public function store(Request $request): JsonResponse

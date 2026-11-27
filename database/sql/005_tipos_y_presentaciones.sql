@@ -1,7 +1,7 @@
 -- =====================================================
 -- LEDGERA
--- 004: Normalizacion de tipos y presentaciones
--- Requiere: 003_unidad_comercial.sql
+-- 005: Normalizacion de tipos y presentaciones
+-- Requiere: 004_unidad_comercial.sql
 -- Ejecutar una sola vez sobre la BD correspondiente.
 -- Realizar respaldo antes de ejecutar.
 -- =====================================================

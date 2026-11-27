@@ -1,7 +1,7 @@
 -- =====================================================
 -- LEDGERA
--- 005: Jornadas de caja independientes por operador
--- Requiere: 004_tipos_y_presentaciones.sql
+-- 006: Jornadas de caja independientes por operador
+-- Requiere: 005_tipos_y_presentaciones.sql
 -- Ejecutar una sola vez.
 -- =====================================================
 

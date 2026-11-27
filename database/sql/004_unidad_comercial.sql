@@ -1,5 +1,5 @@
 -- LEDGERA
--- 003: Incorporación de la unidad comercial.
+-- 004: Incorporación de la unidad comercial.
 
 ALTER TABLE productos
 ADD COLUMN unidad_comercial VARCHAR(30) NULL

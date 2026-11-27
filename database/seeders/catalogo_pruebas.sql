@@ -1,5 +1,5 @@
 -- LEDGERA: Catalogo de pruebas
--- Requiere la migracion 004.
+-- Requiere la migracion 005 (tipos y presentaciones).
 -- Ejecutar exclusivamente en desarrollo.
 
 START TRANSACTION;

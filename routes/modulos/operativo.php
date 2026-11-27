@@ -7,6 +7,7 @@ use App\Http\Controllers\CierreCajaController;
 use App\Http\Controllers\ConfiguracionInicialController;
 use App\Http\Controllers\EgresoController;
 use App\Http\Controllers\EntradaMercanciaController;
+use App\Http\Controllers\ActividadNegocioController;
 use App\Http\Controllers\IncidenciaController;
 use App\Http\Controllers\PanelController;
 use App\Http\Controllers\ProveedorController;
@@ -81,7 +82,7 @@ Route::prefix('egresos')->name('egresos.')->group(function () {
         EgresoController::class, 'obligaciones'
     ])
         ->whereNumber('proveedor')
-        ->middleware('rol:Dueno')
+        ->middleware('poder:pagar_proveedores')   // Dueño o Vendedor encargado
         ->name('facturas');
 });
 
@@ -114,9 +115,8 @@ Route::prefix('cierre-caja')->name('cierre.')->group(function () {
 Route::get('/proveedores/datos', [ProveedorController::class, 'datos'])
     ->name('proveedores.datos');
 
-// Gestión exclusiva del Dueño.
-
-Route::middleware('rol:Dueno')
+// Crear y editar: Dueño o Vendedor encargado. Activar/desactivar: solo el Dueño.
+Route::middleware('poder:gestionar_proveedores')
     ->prefix('proveedores')
     ->name('proveedores.')
     ->group(function () {
@@ -132,7 +132,25 @@ Route::middleware('rol:Dueno')
 
         Route::post('/{proveedor}/estado', [
             ProveedorController::class, 'cambiarEstado'
-        ])->name('estado');
+        ])
+            ->middleware('rol:Dueno')
+            ->name('estado');
+    });
+
+// =====================================================
+// ACTIVIDAD DEL NEGOCIO (solo Dueño, solo lectura)
+// =====================================================
+
+Route::middleware('rol:Dueno')
+    ->prefix('negocio/actividad')
+    ->name('actividad.')
+    ->group(function () {
+
+        Route::get('/', [ActividadNegocioController::class, 'index'])
+            ->name('index');
+
+        Route::get('/datos', [ActividadNegocioController::class, 'datos'])
+            ->name('datos');
     });
 
 // =====================================================
@@ -167,6 +185,11 @@ Route::middleware('rol:Dueno')
                 Route::post('/{usuario}/restablecer-clave', [
                     UsuarioController::class, 'restablecerClave'
                 ])->name('restablecer');
+
+                // Nombrar o quitar Vendedor encargado (solo el Dueño)
+                Route::post('/{usuario}/encargado', [
+                    UsuarioController::class, 'cambiarEncargado'
+                ])->name('encargado');
             });
     });
 

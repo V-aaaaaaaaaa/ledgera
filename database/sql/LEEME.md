@@ -14,8 +14,14 @@
 | Orden | Archivo | Descripción |
 |---|---|---|
 | 000 | `000_ledgera_v2.sql` | Crea la estructura base, restricciones, vistas, triggers y datos iniciales. |
-| 003 | `003_unidad_comercial.sql` | Incorpora la unidad comercial al producto. |
-| 004 | `004_tipos_y_presentaciones.sql` | Separa productos, tipos y presentaciones comerciales independientes. |
+| 003 | `003_vendedor_encargado.sql` | Agrega a `usuarios` el interruptor de Vendedor encargado (`es_encargado`, `encargado_desde`). |
+| 004 | `004_unidad_comercial.sql` | Incorpora la unidad comercial al producto. |
+| 005 | `005_tipos_y_presentaciones.sql` | Separa productos, tipos y presentaciones comerciales independientes. |
+| 006 | `006_cajas_independientes.sql` | Jornadas de caja independientes por operador (cada persona abre y cierra su caja). |
+
+**Atajo para desarrollo:** `instalar_todo.sql` junta 000 + 003 + 004 + 005 + 006 + los datos de prueba en un solo archivo.
+Borra y recrea la base completa: úsalo cuando no te importe perder los datos de tu PC.
+Cuando se agregue un script nuevo (007…), también se pega al final de `instalar_todo.sql`.
 
 **Advertencia:** el script 000 elimina y recrea la base `ledgera`.
 No debe ejecutarse sobre una instalación existente que necesite conservar sus datos.
@@ -54,7 +60,7 @@ Archivo:
 
 `database/seeders/catalogo_pruebas.sql`
 
-Requiere que la migración 004 esté aplicada.
+Requiere que la migración 005 esté aplicada.
 
 Registra productos y tipos de referencia para el puesto 1,
 sin generar compras, existencias ni precios ficticios.

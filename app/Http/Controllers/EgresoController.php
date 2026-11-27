@@ -42,7 +42,8 @@ class EgresoController extends Controller
 
         $jornada = $this->caja->abierta($actor);
 
-        $esDueno = $actor->rol === 'Dueno';
+        // Pagar a proveedores: Dueño o Vendedor encargado
+        $puedePagar = $actor->puede('pagar_proveedores');
 
         $egresos = $jornada
 
@@ -88,7 +89,7 @@ class EgresoController extends Controller
 
             'abierta' => $jornada !== null,
 
-            'es_dueno' => $esDueno,
+            'puede_pagar' => $puedePagar,
 
             'egresos' => $egresos,
 
@@ -100,7 +101,7 @@ class EgresoController extends Controller
                 ->where('medio', '!=', 'Efectivo')
                 ->sum('monto'),
 
-            'proveedores' => $esDueno
+            'proveedores' => $puedePagar
                 ? $this->proveedoresConDeuda(
                     (int) $actor->id_puesto
                 )
@@ -120,7 +121,7 @@ class EgresoController extends Controller
         $actor = $request->user();
 
         abort_unless(
-            $actor->rol === 'Dueno',
+            $actor->puede('pagar_proveedores'),
             403
         );
 
@@ -198,10 +199,10 @@ class EgresoController extends Controller
 
         $esPago = $datos['categoria'] === 'Pago_proveedor';
 
-        if ($esPago && $actor->rol !== 'Dueno') {
+        if ($esPago && !$actor->puede('pagar_proveedores')) {
 
             $this->abortar(
-                'Solo el Dueño puede registrar pagos a proveedores.',
+                'Solo el Dueño o el encargado pueden registrar pagos a proveedores.',
                 403
             );
         }

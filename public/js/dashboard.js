@@ -7,7 +7,7 @@
 // se muestra "pronto" en vez de un 404. Cuando la crees, pon su ruta.
 const PAGINAS_MODULO = {
   ventas:        null,   // '/ventas'  (pendiente de portar a Laravel)
-  inventario:    null,   // '/inventario'  (pendiente de portar a Laravel)
+  inventario:    '/catalogos/productos',   // productos, presentaciones y entradas de mercancía
   fiado:         null,   // '/fiado'
   egresos:       '/egresos',
   exportaciones: null,   // '/exportaciones'  (solo Dueño)
@@ -82,9 +82,12 @@ async function cerrarSesion() {
 // -----------------------------------------------------
 // Pintar la pantalla
 // -----------------------------------------------------
+// El nombre ya se muestra en el menú lateral; esto solo aplica si la pantalla tiene esos elementos
 function renderizarUsuario() {
-  document.getElementById("nombreUsuario").textContent = sesion.nombre;
-  document.getElementById("avatarUsuario").textContent = obtenerIniciales(sesion.nombre);
+  const nombre = document.getElementById("nombreUsuario");
+  const avatar = document.getElementById("avatarUsuario");
+  if (nombre) nombre.textContent = sesion.nombre;
+  if (avatar) avatar.textContent = obtenerIniciales(sesion.nombre);
 }
 
 function mostrarSaludoAleatorio() {
