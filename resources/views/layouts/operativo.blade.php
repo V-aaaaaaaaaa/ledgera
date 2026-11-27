@@ -127,6 +127,13 @@
 
             @if($esDueno)
 
+                <a href="{{ route('actividad.index') }}"
+                   class="op-link {{ request()->routeIs('actividad.*') ? 'is-active' : '' }}"
+                   title="Actividad del negocio" aria-label="Actividad del negocio">
+                    <i class="fas fa-list-check"></i>
+                    <span>Actividad del negocio</span>
+                </a>
+
                 <a href="{{ route('gestion.usuarios') }}"
                    class="op-link {{ request()->routeIs('gestion.usuarios*') ? 'is-active' : '' }}"
                    title="Mi equipo" aria-label="Mi equipo">
@@ -154,6 +161,15 @@
 
         {{-- Acciones de cuenta --}}
         <div class="op-account-actions">
+
+            <button type="button"
+                    class="op-link"
+                    data-reportar
+                    title="Reportar un problema"
+                    aria-label="Reportar un problema">
+                <i class="fas fa-circle-exclamation"></i>
+                <span>Reportar un problema</span>
+            </button>
 
             <a href="{{ route('clave.form') }}"
                class="op-link"
@@ -186,8 +202,50 @@
 
 </div>
 
+{{-- Ventana "Reportar un problema": disponible en todas las pantallas del Dueño y el Vendedor --}}
+  <div class="modal-reporte" id="modalReporte" hidden>
+    <div class="modal-reporte__caja" role="dialog" aria-modal="true" aria-labelledby="tituloReporte">
+      <div class="modal-reporte__cab">
+        <h2 id="tituloReporte">Reportar un problema</h2>
+        <button type="button" class="modal-reporte__cerrar" id="reporteCerrar" aria-label="Cerrar">&times;</button>
+      </div>
+
+      <form id="reporteForm" novalidate>
+        <label for="repModulo">¿En qué parte pasó?</label>
+        <select id="repModulo">
+          <option value="">Elige una opción</option>
+          @foreach (\App\Models\Incidencia::MODULOS as $modulo)
+            <option value="{{ $modulo }}">{{ $modulo }}</option>
+          @endforeach
+        </select>
+
+        <p class="rep-etiqueta">¿Qué tan grave es?</p>
+        <div class="rep-impactos" id="repImpactos">
+          <button type="button" class="rep-impacto" data-impacto="Alto"><strong>No puedo trabajar</strong><span>Me impide vender o registrar</span></button>
+          <button type="button" class="rep-impacto" data-impacto="Medio"><strong>Me estorba</strong><span>Puedo seguir, pero con problemas</span></button>
+          <button type="button" class="rep-impacto" data-impacto="Bajo"><strong>Es una molestia</strong><span>Algo pequeño o por mejorar</span></button>
+        </div>
+
+        <label for="repDescripcion">Cuéntanos qué pasó</label>
+        <textarea id="repDescripcion" rows="4" maxlength="500" placeholder="Ej: al registrar una venta a fiado se queda cargando"></textarea>
+        <small id="repContador">0 / 500</small>
+
+        <p class="rep-msg" id="repMsg" role="alert" hidden></p>
+        <button type="submit" class="rep-enviar" id="repEnviar">Enviar reporte</button>
+      </form>
+    </div>
+  </div>
+
 @endsection
 
 @push('scripts')
     <script src="{{ asset('js/operativo.js') }}?v={{ filemtime(public_path('js/operativo.js')) }}"></script>
+@endpush
+
+@push('estilos')
+    <link rel="stylesheet" href="{{ asset('css/incidencia.css') }}?v={{ filemtime(public_path('css/incidencia.css')) }}">
+@endpush
+
+@push('scripts')
+    <script src="{{ asset('js/incidencia-reporte.js') }}?v={{ filemtime(public_path('js/incidencia-reporte.js')) }}"></script>
 @endpush

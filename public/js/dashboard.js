@@ -82,9 +82,12 @@ async function cerrarSesion() {
 // -----------------------------------------------------
 // Pintar la pantalla
 // -----------------------------------------------------
+// El nombre ya se muestra en el menú lateral; esto solo aplica si la pantalla tiene esos elementos
 function renderizarUsuario() {
-  document.getElementById("nombreUsuario").textContent = sesion.nombre;
-  document.getElementById("avatarUsuario").textContent = obtenerIniciales(sesion.nombre);
+  const nombre = document.getElementById("nombreUsuario");
+  const avatar = document.getElementById("avatarUsuario");
+  if (nombre) nombre.textContent = sesion.nombre;
+  if (avatar) avatar.textContent = obtenerIniciales(sesion.nombre);
 }
 
 function mostrarSaludoAleatorio() {

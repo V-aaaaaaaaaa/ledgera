@@ -5,6 +5,7 @@ use App\Http\Controllers\CajaController;
 use App\Http\Controllers\CierreCajaController;
 use App\Http\Controllers\ConfiguracionInicialController;
 use App\Http\Controllers\EgresoController;
+use App\Http\Controllers\ActividadNegocioController;
 use App\Http\Controllers\IncidenciaController;
 use App\Http\Controllers\PanelController;
 use App\Http\Controllers\ProveedorController;
@@ -72,6 +73,15 @@ Route::middleware('poder:gestionar_proveedores')
         Route::put('/{proveedor}', [ProveedorController::class, 'update'])->name('update');
         Route::post('/{proveedor}/estado', [ProveedorController::class, 'cambiarEstado'])
             ->middleware('rol:Dueno')->name('estado');
+    });
+
+// Actividad del negocio: el Dueño revisa todo lo que pasó en su puesto (solo lectura)
+Route::middleware('rol:Dueno')
+    ->prefix('negocio/actividad')
+    ->name('actividad.')
+    ->group(function () {
+        Route::get('/', [ActividadNegocioController::class, 'index'])->name('index');
+        Route::get('/datos', [ActividadNegocioController::class, 'datos'])->name('datos');
     });
 
 // Gestión exclusiva del dueño

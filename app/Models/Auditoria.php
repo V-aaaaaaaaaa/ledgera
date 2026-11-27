@@ -25,6 +25,8 @@ class Auditoria extends Model
     // Código guardado en la BD => texto que ve el Administrador
     public const ACCIONES = [
         'INGRESO' => 'Inició sesión',
+        'LOGIN_FALLIDO' => 'Intento de ingreso fallido',
+        'LOGIN_RECHAZADO' => 'Ingreso rechazado',
         'CUENTA_BLOQUEADA' => 'Cuenta bloqueada por intentos fallidos',
         'CLAVE_CAMBIADA' => 'Cambió su propia clave',
         'CLAVE_RESTABLECIDA' => 'Restableció la clave de una cuenta',
