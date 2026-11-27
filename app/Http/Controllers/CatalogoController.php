@@ -3,19 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\Auditoria;
+use App\Services\InventarioService;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Database\QueryException;
 
 class CatalogoController extends Controller
 {
     private const CATALOGOS = [
-        'proveedores' => [
-            'id' => 'id_proveedor',
-            'nombre' => 'nombre_razon_social',
-            'titulo' => 'Proveedores',
-            'singular' => 'Proveedor',
-        ],
         'clientes' => [
             'id' => 'id_cliente',
             'nombre' => 'nombre_completo',
@@ -25,10 +20,14 @@ class CatalogoController extends Controller
         'productos' => [
             'id' => 'id_producto',
             'nombre' => 'nombre_producto',
-            'titulo' => 'Productos',
+            'titulo' => 'Inventario y compras',
             'singular' => 'Producto',
         ],
     ];
+
+    public function __construct(
+        private InventarioService $inventario
+    ) {}
 
     // =====================================================
     // CONSULTAR CATÁLOGOS
@@ -37,91 +36,97 @@ class CatalogoController extends Controller
     public function index(Request $request, string $tipo)
     {
         $cfg = $this->configuracion($tipo);
-        $puesto = $request->user()->id_puesto;
+        $puesto = (int) $request->user()->id_puesto;
+
+        abort_unless($puesto, 403);
+
+        $esDueno = $request->user()->rol === 'Dueno';
+
+        $buscar = $request->query('buscar', '');
+
+        $buscar = is_string($buscar)
+            ? mb_substr(trim($buscar), 0, 150)
+            : '';
+
+        $estado = $request->query('estado');
+
+        $estado = in_array($estado, ['Activo', 'Inactivo'], true)
+            ? $estado
+            : null;
+
+        $pestana = $request->query('pestana', 'inventario');
+
+        $pestana = in_array(
+            $pestana,
+            ['inventario', 'entradas', 'catalogo'],
+            true
+        ) ? $pestana : 'inventario';
 
         $consulta = DB::table($tipo)
             ->where('id_puesto', $puesto);
 
-        // Filtro de búsqueda
-        $buscar = trim((string) $request->query('buscar', ''));
-
-        if ($buscar !== '') {
-            $consulta->where(function ($q) use ($cfg, $buscar, $tipo) {
-
-                $q->where(
-                    $cfg['nombre'], 'like', "%{$buscar}%"
-                );
-
-                if ($tipo !== 'productos') {
-                    $q->orWhere(
-                        'telefono', 'like', "%{$buscar}%"
-                    );
-                }
-            });
-        }
-
-        // Filtro por estado
-        $estado = $request->query('estado');
-
-        if (in_array($estado, ['Activo', 'Inactivo'], true)) {
-            $consulta->where('estado', $estado);
-        }
-
-        // =================================================
-        // SALDOS FINANCIEROS
-        // =================================================
-
         $saldos = collect();
 
-        // Cuentas por pagar a proveedores
-        if ($tipo === 'proveedores') {
+        // Catálogo de clientes.
 
-            $saldos = DB::table('v_entradas_saldo')
-                ->where('id_puesto', $puesto)
-                ->where('saldo_pendiente', '>', 0)
-                ->selectRaw(
-                    'id_proveedor, SUM(saldo_pendiente) AS saldo'
-                )
-                ->groupBy('id_proveedor')
-                ->pluck('saldo', 'id_proveedor');
-        }
-
-        // Cuentas por cobrar a clientes
         if ($tipo === 'clientes') {
+
+            $consulta->when($buscar !== '', function ($q) use ($buscar) {
+                $q->where(function ($q) use ($buscar) {
+                    $q->where('nombre_completo', 'like', "%{$buscar}%")
+                        ->orWhere('telefono', 'like', "%{$buscar}%");
+                });
+            })->when($estado, fn ($q) => $q->where('estado', $estado));
 
             $saldos = DB::table('v_creditos_saldo')
                 ->where('id_puesto', $puesto)
                 ->where('saldo_pendiente', '>', 0)
                 ->where('estado_venta', '!=', 'Anulada')
-                ->selectRaw(
-                    'id_cliente, SUM(saldo_pendiente) AS saldo'
-                )
+                ->selectRaw('id_cliente, SUM(saldo_pendiente) AS saldo')
                 ->groupBy('id_cliente')
                 ->pluck('saldo', 'id_cliente');
-        }
 
-        // =================================================
-        // OBTENER Y PAGINAR REGISTROS
-        // =================================================
+        } elseif ($pestana === 'catalogo') {
+
+            // Catálogo de productos y tipos.
+
+            $consulta->when($buscar !== '', function ($q) use ($buscar) {
+
+                $q->where(function ($q) use ($buscar) {
+
+                    $q->where('nombre_producto', 'like', "%{$buscar}%")
+
+                        ->orWhereExists(function ($sub) use ($buscar) {
+
+                            $sub->selectRaw('1')
+                                ->from('tipos_producto as t')
+                                ->whereColumn(
+                                    't.id_producto',
+                                    'productos.id_producto'
+                                )
+                                ->where(
+                                    't.nombre_tipo',
+                                    'like',
+                                    "%{$buscar}%"
+                                );
+                        });
+                });
+
+            })->when($estado, fn ($q) => $q->where('estado', $estado));
+        }
 
         $registros = $consulta
             ->orderBy($cfg['nombre'])
+            ->orderBy($cfg['id'])
             ->paginate(15)
             ->withQueryString();
 
-        // Asociar saldo a cada registro
         $registros->through(function ($fila) use ($cfg, $saldos) {
 
-            $fila->saldo = $saldos->get(
-                $fila->{$cfg['id']}, 0
-            );
+            $fila->saldo = $saldos->get($fila->{$cfg['id']}, 0);
 
             return $fila;
         });
-
-        // =================================================
-        // INDICADORES DEL CATÁLOGO
-        // =================================================
 
         $total = DB::table($tipo)
             ->where('id_puesto', $puesto)
@@ -132,9 +137,68 @@ class CatalogoController extends Controller
             ->where('estado', 'Activo')
             ->count();
 
-        // =================================================
-        // RETORNAR LA VISTA
-        // =================================================
+        $proveedores = collect();
+        $existencias = null;
+        $entradas = null;
+        $presentacionSeleccionada = null;
+
+        if ($tipo === 'productos') {
+
+            $tipos = DB::table('tipos_producto')
+                ->whereIn('id_producto', $registros->pluck('id_producto'))
+                ->orderBy('nombre_tipo')
+                ->get()
+                ->groupBy('id_producto');
+
+            $registros->through(function ($producto) use ($tipos) {
+
+                $producto->tipos = $tipos->get(
+                    $producto->id_producto,
+                    collect()
+                );
+
+                return $producto;
+            });
+
+            $proveedores = DB::table('proveedores')
+                ->where('id_puesto', $puesto)
+                ->where('estado', 'Activo')
+                ->orderBy('nombre_razon_social')
+                ->get();
+
+            if ($pestana === 'inventario') {
+
+                $existencias = $this->existencias(
+                    $puesto,
+                    $buscar,
+                    $estado
+                );
+
+            } elseif ($pestana === 'entradas') {
+
+                $id = filter_var(
+                    $request->query('inventario'),
+                    FILTER_VALIDATE_INT,
+                    ['options' => ['min_range' => 1]]
+                );
+
+                if ($id !== false) {
+
+                    $presentacionSeleccionada =
+                        $this->consultaInventario($puesto)
+                            ->where('i.id_inventario', $id)
+                            ->first();
+
+                    abort_if(!$presentacionSeleccionada, 404);
+                }
+
+                $entradas = $this->entradas(
+                    $puesto,
+                    $buscar,
+                    $id ?: null
+                );
+            }
+        }
 
         return view('catalogos.index', [
             'tipo' => $tipo,
@@ -143,18 +207,220 @@ class CatalogoController extends Controller
             'total' => $total,
             'activos' => $activos,
             'saldoTotal' => $saldos->sum(),
-            'esDueno' => $request->user()->rol === 'Dueno',
+            'esDueno' => $esDueno,
+            'proveedores' => $proveedores,
+            'pestana' => $pestana,
+            'existencias' => $existencias,
+            'entradas' => $entradas,
+            'presentacionSeleccionada' => $presentacionSeleccionada,
         ]);
     }
 
     // =====================================================
-    // REGISTRAR
+    // CONSULTAR INVENTARIO
+    // =====================================================
+
+    private function consultaInventario(int $puesto)
+    {
+        return DB::table('inventario_calidades as i')
+
+            ->join(
+                'tipos_producto as t',
+                't.id_tipo',
+                '=',
+                'i.id_tipo'
+            )
+
+            ->join(
+                'productos as p',
+                'p.id_producto',
+                '=',
+                't.id_producto'
+            )
+
+            ->where('p.id_puesto', $puesto)
+
+            ->select([
+                'i.id_inventario',
+                'i.id_tipo',
+                'p.id_producto',
+                'p.nombre_producto',
+                't.nombre_tipo',
+                'i.unidad_comercial',
+                'i.stock_actual',
+                'i.stock_minimo',
+                'i.precio_venta_diario',
+                'p.estado',
+            ]);
+    }
+
+    private function existencias(
+        int $puesto,
+        string $buscar,
+        ?string $estado
+    ) {
+
+        return $this->consultaInventario($puesto)
+
+            ->when($buscar !== '', function ($q) use ($buscar) {
+
+                $q->where(function ($q) use ($buscar) {
+
+                    $q->where('p.nombre_producto', 'like', "%{$buscar}%")
+                        ->orWhere('t.nombre_tipo', 'like', "%{$buscar}%")
+                        ->orWhere('i.unidad_comercial', 'like', "%{$buscar}%");
+                });
+            })
+
+            ->when($estado, fn ($q) => $q->where('p.estado', $estado))
+
+            ->orderBy('p.nombre_producto')
+            ->orderBy('t.nombre_tipo')
+            ->orderBy('i.unidad_comercial')
+            ->orderBy('i.id_inventario')
+
+            ->paginate(15, ['*'], 'pagina_inventario')
+            ->withQueryString();
+    }
+
+    // =====================================================
+    // CONSULTAR ENTRADAS Y SUS SALDOS
+    // =====================================================
+
+    private function entradas(
+        int $puesto,
+        string $buscar,
+        ?int $idInventario
+    ) {
+
+        $entradas = DB::table('entradas_mercancia as e')
+
+            ->join('proveedores as pr', function ($join) {
+
+                $join->on('pr.id_proveedor', '=', 'e.id_proveedor')
+                    ->on('pr.id_puesto', '=', 'e.id_puesto');
+            })
+
+            ->join(
+                'v_entradas_saldo as s',
+                's.id_entrada',
+                '=',
+                'e.id_entrada'
+            )
+
+            ->where('e.id_puesto', $puesto)
+            ->where('s.id_puesto', $puesto)
+
+            ->when($buscar !== '', function ($q) use ($buscar) {
+
+                $q->where(function ($q) use ($buscar) {
+
+                    $q->where('e.documento_soporte', 'like', "%{$buscar}%")
+                        ->orWhere('pr.nombre_razon_social', 'like', "%{$buscar}%");
+                });
+            })
+
+            ->when($idInventario, function ($q) use ($idInventario) {
+
+                $q->whereExists(function ($sub) use ($idInventario) {
+
+                    $sub->selectRaw('1')
+                        ->from('detalle_entrada as d')
+                        ->whereColumn('d.id_entrada', 'e.id_entrada')
+                        ->where('d.id_inventario', $idInventario);
+                });
+            })
+
+            ->select([
+                'e.id_entrada',
+                'e.id_proveedor',
+                'e.documento_soporte',
+                'e.fecha_entrada',
+                'pr.nombre_razon_social',
+                's.total_calculado',
+                's.valor_acordado',
+                's.pagado',
+                's.saldo_pendiente',
+                's.estado_pago',
+            ])
+
+            ->orderByDesc('e.fecha_entrada')
+            ->orderByDesc('e.id_entrada')
+            ->paginate(15, ['*'], 'pagina_entradas')
+            ->withQueryString();
+
+        $detalles = DB::table('detalle_entrada as d')
+
+            ->join(
+                'entradas_mercancia as e',
+                'e.id_entrada',
+                '=',
+                'd.id_entrada'
+            )
+
+            ->join(
+                'inventario_calidades as i',
+                'i.id_inventario',
+                '=',
+                'd.id_inventario'
+            )
+
+            ->join(
+                'tipos_producto as t',
+                't.id_tipo',
+                '=',
+                'i.id_tipo'
+            )
+
+            ->join(
+                'productos as p',
+                'p.id_producto',
+                '=',
+                't.id_producto'
+            )
+
+            ->where('e.id_puesto', $puesto)
+            ->where('p.id_puesto', $puesto)
+            ->whereIn('d.id_entrada', $entradas->pluck('id_entrada'))
+
+            ->orderBy('d.id_detalle_entrada')
+
+            ->get([
+                'd.id_entrada',
+                'd.id_inventario',
+                'p.nombre_producto',
+                't.nombre_tipo',
+                'i.unidad_comercial',
+                'd.cantidad_recibida',
+                'd.costo_unitario',
+                'd.subtotal',
+            ])
+
+            ->groupBy('id_entrada');
+
+        return $entradas->through(function ($entrada) use ($detalles) {
+
+            $entrada->detalles = $detalles->get(
+                $entrada->id_entrada,
+                collect()
+            );
+
+            return $entrada;
+        });
+    }
+
+    // =====================================================
+    // REGISTRAR CLIENTES
     // =====================================================
 
     public function store(Request $request, string $tipo)
     {
-        $cfg = $this->configuracion($tipo);
-        $puesto = $request->user()->id_puesto;
+        abort_unless($tipo === 'clientes', 404);
+
+        $actor = $request->user();
+        $puesto = (int) $actor->id_puesto;
+
+        abort_unless($puesto, 403);
 
         $datos = $this->validar($request, $tipo, true);
 
@@ -163,36 +429,34 @@ class CatalogoController extends Controller
 
         try {
 
-            DB::transaction(function () use (
-                $tipo, $cfg, $datos, $puesto
-            ) {
+            DB::transaction(function () use ($datos, $puesto, $actor) {
 
-                $id = DB::table($tipo)->insertGetId(
-                    $datos, $cfg['id']
-                );
+                $id = DB::table('clientes')
+                    ->insertGetId($datos, 'id_cliente');
 
                 Auditoria::registrar(
-                    strtoupper($cfg['singular']) . '_CREADO',
+                    'CLIENTE_CREADO',
                     $id,
                     $puesto,
                     'Registro de catálogo',
-                    null,
-                    $tipo
+                    $actor->id_usuario,
+                    'clientes'
                 );
             });
 
         } catch (QueryException $e) {
+
             return $this->errorDuplicado($e);
         }
 
         return back()->with(
             'success',
-            $cfg['singular'] . ' registrado correctamente.'
+            'Cliente registrado correctamente.'
         );
     }
 
     // =====================================================
-    // ACTUALIZAR
+    // ACTUALIZAR PRODUCTOS Y CLIENTES
     // =====================================================
 
     public function update(
@@ -200,24 +464,25 @@ class CatalogoController extends Controller
         string $tipo,
         int $id
     ) {
+
         $cfg = $this->configuracion($tipo);
-        $puesto = $request->user()->id_puesto;
+        $actor = $request->user();
+        $puesto = (int) $actor->id_puesto;
 
-        // Solo el dueño puede editar clientes y productos
-        if ($tipo !== 'proveedores') {
-
-            abort_unless(
-                $request->user()->rol === 'Dueno', 403
-            );
-        }
+        abort_unless($puesto && $actor->rol === 'Dueno', 403);
 
         $datos = $this->validar($request, $tipo, false);
 
         try {
 
             DB::transaction(function () use (
-                $tipo, $cfg, $id, $puesto, $datos
+                $tipo, $cfg, $id, $puesto, $datos, $actor
             ) {
+
+                if ($tipo === 'productos') {
+
+                    $this->inventario->bloquearPuesto($actor);
+                }
 
                 $consulta = DB::table($tipo)
                     ->where($cfg['id'], $id)
@@ -236,12 +501,16 @@ class CatalogoController extends Controller
                     $id,
                     $puesto,
                     'Actualización de catálogo',
-                    null,
-                    $tipo
+                    $actor->id_usuario,
+                    $tipo,
+                    array_intersect_key((array) $anterior, $datos),
+                    $datos
                 );
-            });
+
+            }, 3);
 
         } catch (QueryException $e) {
+
             return $this->errorDuplicado($e);
         }
 
@@ -260,22 +529,27 @@ class CatalogoController extends Controller
         string $tipo,
         int $id
     ) {
+
         $cfg = $this->configuracion($tipo);
+        $actor = $request->user();
+        $puesto = (int) $actor->id_puesto;
 
-        // Solo el dueño puede cambiar el estado
-        abort_unless(
-            $request->user()->rol === 'Dueno', 403
-        );
+        abort_unless($puesto && $actor->rol === 'Dueno', 403);
 
-        $puesto = $request->user()->id_puesto;
-
-        $request->validate([
+        $v = $request->validate([
             'estado' => ['required', 'in:Activo,Inactivo'],
         ]);
 
+        $estado = $v['estado'];
+
         DB::transaction(function () use (
-            $request, $tipo, $cfg, $id, $puesto
+            $tipo, $cfg, $id, $puesto, $estado, $actor
         ) {
+
+            if ($tipo === 'productos') {
+
+                $this->inventario->bloquearPuesto($actor);
+            }
 
             $consulta = DB::table($tipo)
                 ->where($cfg['id'], $id)
@@ -287,11 +561,12 @@ class CatalogoController extends Controller
 
             abort_if(!$fila, 404);
 
-            $estado = $request->input('estado');
+            if ($fila->estado === $estado) {
 
-            $consulta->update([
-                'estado' => $estado
-            ]);
+                return;
+            }
+
+            $consulta->update(['estado' => $estado]);
 
             Auditoria::registrar(
                 strtoupper($cfg['singular'])
@@ -301,12 +576,13 @@ class CatalogoController extends Controller
                 $id,
                 $puesto,
                 'Cambio de estado',
-                null,
+                $actor->id_usuario,
                 $tipo,
                 ['estado' => $fila->estado],
                 ['estado' => $estado]
             );
-        });
+
+        }, 3);
 
         return back()->with(
             'success',
@@ -315,21 +591,15 @@ class CatalogoController extends Controller
     }
 
     // =====================================================
-    // CONFIGURACIÓN DEL CATÁLOGO
+    // FUNCIONES AUXILIARES
     // =====================================================
 
     private function configuracion(string $tipo): array
     {
-        abort_unless(
-            isset(self::CATALOGOS[$tipo]), 404
-        );
+        abort_unless(isset(self::CATALOGOS[$tipo]), 404);
 
         return self::CATALOGOS[$tipo];
     }
-
-    // =====================================================
-    // VALIDACIÓN DE DATOS
-    // =====================================================
 
     private function validar(
         Request $request,
@@ -340,121 +610,119 @@ class CatalogoController extends Controller
         $cfg = $this->configuracion($tipo);
         $esDueno = $request->user()->rol === 'Dueno';
 
-        // Normalizar espacios del nombre
         if (is_string($request->input('nombre'))) {
 
             $request->merge([
-                'nombre' => preg_replace(
-                    '/\s+/u',
-                    ' ',
-                    trim($request->input('nombre'))
+                'nombre' => trim(
+                    preg_replace(
+                        '/\s+/u',
+                        ' ',
+                        $request->input('nombre')
+                    ) ?? ''
                 ),
             ]);
         }
 
         $reglas = [
+
             'nombre' => [
-                'required', 
+                'required',
                 'string',
                 'min:2',
                 $tipo === 'productos' ? 'max:100' : 'max:150',
-
-                // Debe contener al menos una letra
                 'regex:/\p{L}/u',
 
-                // Caracteres permitidos según el catálogo
                 $tipo === 'clientes'
                     ? "regex:/^[\p{L}\p{M} .'\-]+$/u"
-                    : "regex:/^[\p{L}\p{M}\p{N} .,'&()\/\-]+$/u",
+                    : "regex:/^[\p{L}\p{M}\p{N} .,'&#()\/\-]+$/u",
             ],
         ];
 
-        // Teléfono de proveedores y clientes
-        if ($tipo !== 'productos') {
+        if ($tipo === 'clientes') {
 
             $reglas['telefono'] = [
-                $tipo === 'clientes' ? 'required' : 'nullable',
+                'required',
                 'string',
                 'max:20',
-                'regex:/^\+?[0-9]{7,19}$/'
+                'regex:/^\+?[0-9]{7,19}$/',
             ];
-        }
 
-        // Descripción de productos
-        if ($tipo === 'productos') {
+            if ($creando) {
 
-            $reglas['descripcion'] = [
-                'nullable',
-                'string',
-                'max:1000'
-            ];
-        }
+                $reglas['consentimiento'] = ['accepted'];
+            }
 
-        // Consentimiento de tratamiento de datos
-        if ($creando && $tipo !== 'productos') {
+            if ($esDueno) {
 
-            $reglas['consentimiento'] = ['accepted'];
-        }
-
-        // Plazo de crédito configurable por el dueño
-        if ($tipo === 'clientes' && $esDueno) {
-
-            $reglas['plazo'] = [
-                'required',
-                'integer',
-                'min:1',
-                'max:3650'
-            ];
+                $reglas['plazo'] = [
+                    'required',
+                    'integer',
+                    'min:1',
+                    'max:3650',
+                ];
+            }
         }
 
         $v = $request->validate($reglas, [
+
             'nombre.required' => 'Escribe el nombre.',
-            'nombre.max' => 'El nombre supera la longitud permitida.',
-            'telefono.required' => 'Escribe el teléfono.',
-            'telefono.regex' => 'Ingresa un número de teléfono válido.',
+
+            'nombre.min' =>
+                'El nombre debe contener al menos dos caracteres.',
+
+            'nombre.max' =>
+                'El nombre supera la longitud permitida.',
+
+            'nombre.regex' =>
+                'El nombre contiene caracteres no permitidos.',
+
+            'telefono.required' =>
+                'Escribe el teléfono.',
+
+            'telefono.regex' =>
+                'Ingresa un número de teléfono válido.',
+
             'consentimiento.accepted' =>
                 'Debes confirmar la autorización de tratamiento de datos.',
-            'plazo.required' => 'Indica el plazo de crédito.',
-            'plazo.min' => 'El plazo debe ser de al menos un día.',
-            'plazo.max' => 'El plazo supera el máximo permitido.',
-            'nombre.regex' => 'El nombre contiene caracteres no permitidos.',
-            'nombre.min' =>'El nombre debe contener al menos dos caracteres.',
-        ]);
-            
 
-        // Preparar datos para MySQL
+            'plazo.required' =>
+                'Indica el plazo de crédito.',
+
+            'plazo.min' =>
+                'El plazo debe ser de al menos un día.',
+
+            'plazo.max' =>
+                'El plazo supera el máximo permitido.',
+        ]);
+
         $datos = [
             $cfg['nombre'] => $v['nombre'],
         ];
 
-        if ($tipo !== 'productos') {
-            $datos['telefono'] = $v['telefono'] ?? null;
-        }
-
-        if ($tipo === 'productos') {
-            $datos['descripcion'] = $v['descripcion'] ?? null;
-        }
+        // Los productos solo permiten modificar su nombre.
+        // La descripción histórica permanece intacta.
 
         if ($tipo === 'clientes') {
 
+            $datos['telefono'] = $v['telefono'];
+
             if ($esDueno) {
+
                 $datos['plazo_credito_dias'] = $v['plazo'];
 
             } elseif ($creando) {
+
                 $datos['plazo_credito_dias'] = 15;
             }
-        }
 
-        if ($creando && $tipo !== 'productos') {
-            $datos['consentimiento_datos'] = now();
+            if ($creando) {
+
+                $datos['consentimiento_datos'] = now();
+            }
         }
 
         return $datos;
     }
-
-    // =====================================================
-    // MANEJO DE REGISTROS DUPLICADOS
-    // =====================================================
 
     private function errorDuplicado(QueryException $e)
     {
@@ -464,7 +732,7 @@ class CatalogoController extends Controller
                 ->withInput()
                 ->withErrors([
                     'duplicado' =>
-                        'Ya existe un registro con esos datos en este puesto.'
+                        'Ya existe un registro con esos datos en este puesto.',
                 ]);
         }
 

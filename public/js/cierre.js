@@ -122,6 +122,8 @@
     $('resultado').textContent = `Esperado ${pesos(c.esperado)} · Contado ${pesos(c.contado)}. ${dif}`;
     mostrar('conCaja', false);
     mostrar('listo', true);
+    // Al cerrar mi caja, puede que ya se pueda hacer el cierre del puesto
+    if (typeof window.recargarCierrePuesto === 'function') window.recargarCierrePuesto();
   }
 
   // ---------- Límite (solo Dueño) ----------

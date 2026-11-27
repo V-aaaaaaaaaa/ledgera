@@ -16,7 +16,9 @@
     $datosUsuario = $u ? [
         'id' => $u->id_usuario,
         'nombre' => $u->nombre_completo,
-        'rol' => $u->rol
+        'rol' => $u->rol,
+        // Solo para mostrar u ocultar botones: el servidor vuelve a validar
+        'puede_productos' => $u->puede('gestionar_productos'),
     ] : null;
 @endphp
 <script>

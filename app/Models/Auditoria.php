@@ -25,6 +25,8 @@ class Auditoria extends Model
     // Código guardado en la BD => texto que ve el Administrador
     public const ACCIONES = [
         'INGRESO' => 'Inició sesión',
+        'LOGIN_FALLIDO' => 'Intento de ingreso fallido',
+        'LOGIN_RECHAZADO' => 'Ingreso rechazado',
         'CUENTA_BLOQUEADA' => 'Cuenta bloqueada por intentos fallidos',
         'CLAVE_CAMBIADA' => 'Cambió su propia clave',
         'CLAVE_RESTABLECIDA' => 'Restableció la clave de una cuenta',
@@ -50,7 +52,11 @@ class Auditoria extends Model
         'ENCARGADO_ACTIVADO' => 'Nombró a un vendedor como encargado',
         'ENCARGADO_QUITADO' => 'Le quitó el encargo a un vendedor',
         'PRODUCTO_CREADO' => 'Registró un producto',
-        'CALIDAD_CREADA' => 'Registró una calidad de producto',
+        'CALIDAD_CREADA' => 'Registró un tipo de producto',
+        'TIPO_CREADO' => 'Registró un tipo de producto',
+        'PRESENTACION_CREADA' => 'Registró una presentación de producto',
+        'AJUSTE_INVENTARIO' => 'Ajustó el inventario',
+        'CIERRE_PUESTO' => 'Hizo el cierre del puesto',
         'UMBRAL_CAMBIADO' => 'Cambió el límite de descuadre de caja',
     ];
 

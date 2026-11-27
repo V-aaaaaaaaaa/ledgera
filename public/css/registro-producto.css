@@ -1,0 +1,715 @@
+/* =====================================================
+   LEDGERA — ENTRADAS DE MERCANCÍA
+   ===================================================== */
+
+.cat-modal.rp-modal {
+    --rp-primary: #145A32;
+    --rp-dark: #0F3D2E;
+    --rp-light: #E8F5EE;
+    --rp-border: #DCE8DF;
+    --rp-muted: #52635B;
+    --rp-background: #F7FAF8;
+
+    width: min(1080px, 95vw);
+    max-height: 92vh;
+    max-height: 92dvh;
+    margin: auto;
+    padding: clamp(16px, 3vw, 28px);
+    color: var(--rp-dark);
+    background: #FFFFFF;
+    overflow: auto;
+    overscroll-behavior: contain;
+}
+
+/* =====================================================
+   ENCABEZADO
+   ===================================================== */
+
+.rp-modal .rp-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--rp-border);
+}
+
+.rp-modal .rp-icon {
+    display: grid;
+    place-items: center;
+    width: 54px;
+    height: 54px;
+    flex-shrink: 0;
+    border-radius: 12px;
+    color: var(--rp-primary);
+    background: var(--rp-light);
+    font-size: 24px;
+}
+
+.rp-modal .rp-heading {
+    flex: 1;
+    min-width: 0;
+}
+
+.rp-modal h2 {
+    margin: 0 0 6px;
+    font-size: 24px;
+    letter-spacing: -.5px;
+}
+
+.rp-modal .rp-heading p,
+.rp-modal .rp-help {
+    margin: 0;
+    color: var(--rp-muted);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.rp-modal .rp-close {
+    border: none;
+    background: transparent;
+    color: var(--rp-muted);
+    cursor: pointer;
+    font-size: 28px;
+    line-height: 1;
+    padding: 8px;
+}
+
+/* =====================================================
+   SECCIONES DEL FORMULARIO
+   ===================================================== */
+
+.rp-modal .rp-section {
+    padding: 24px 0;
+    border-bottom: 1px solid var(--rp-border);
+}
+
+.rp-modal .rp-section h3 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+    margin: 0 0 18px;
+}
+
+.rp-modal .rp-section h3 span {
+    font-size: 12px;
+    color: var(--rp-primary);
+    background: var(--rp-light);
+    border-radius: 6px;
+    padding: 5px 8px;
+}
+
+.rp-modal .rp-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+/* =====================================================
+   CONTROLES DEL FORMULARIO
+   ===================================================== */
+
+.rp-modal label {
+    display: block;
+    min-width: 0;
+    margin: 0 0 12px;
+    font-size: 13px;
+    line-height: 1.5;
+    font-weight: 600;
+    color: var(--rp-primary);
+}
+
+.rp-modal label input:not([type="checkbox"]),
+.rp-modal label textarea,
+.rp-modal label select {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    min-height: 43px;
+    margin: 6px 0 0;
+    padding: 10px 12px;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 400;
+    border: 1px solid #C8DED0;
+    border-radius: 8px;
+    background: var(--rp-background);
+    color: var(--rp-dark);
+}
+
+.rp-modal textarea {
+    resize: vertical;
+}
+
+.rp-modal input::placeholder,
+.rp-modal textarea::placeholder {
+    color: #75847B;
+}
+
+.rp-modal input:disabled,
+.rp-modal select:disabled {
+    background: #E9EEEB;
+    color: #52635B;
+    cursor: not-allowed;
+}
+
+.rp-modal input:focus,
+.rp-modal textarea:focus,
+.rp-modal select:focus {
+    outline: 2px solid #27834E;
+    outline-offset: 1px;
+}
+
+.rp-modal input:user-invalid,
+.rp-modal select:user-invalid {
+    border-color: #BD4141;
+}
+
+.rp-modal input[type="checkbox"] {
+    accent-color: var(--rp-primary);
+    flex-shrink: 0;
+    width: 17px;
+    height: 17px;
+    margin: 0;
+}
+
+.rp-modal .rp-note {
+    display: block;
+    color: var(--rp-muted);
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.6;
+    margin: 10px 0;
+}
+
+.rp-modal .rp-note:empty {
+    display: none;
+}
+
+/* =====================================================
+   PROVEEDOR Y DOCUMENTO
+   ===================================================== */
+
+.rp-modal .rp-provider-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.rp-modal .rp-provider-row label {
+    margin-bottom: 0;
+}
+
+.rp-modal .rp-provider-row button {
+    min-height: 43px;
+    white-space: nowrap;
+}
+
+.rp-modal #rp-sugerencia-proveedor {
+    padding: 10px 13px;
+    border-left: 3px solid #27834E;
+    border-radius: 5px;
+    background: var(--rp-light);
+}
+
+.rp-modal #rp-sin-proveedores {
+    padding: 12px;
+    color: #805B10;
+    background: #FFF6DC;
+    border-radius: 8px;
+}
+
+.rp-modal .rp-documento button {
+    margin-top: 4px;
+}
+
+.rp-modal .rp-documento .rp-note {
+    margin-bottom: 0;
+}
+
+/* =====================================================
+   TARJETAS DE PRODUCTOS
+   ===================================================== */
+
+.rp-modal #rp-productos {
+    display: grid;
+    gap: 18px;
+    margin: 18px 0;
+}
+
+.rp-modal .rp-product-card {
+    min-width: 0;
+    padding: 20px;
+    border: 1px solid #C8DED0;
+    border-radius: 13px;
+    background: #FFFFFF;
+    box-shadow: 0 3px 12px rgba(15, 61, 46, .05);
+}
+
+.rp-modal .rp-product-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--rp-border);
+}
+
+.rp-modal .rp-product-header h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.rp-modal .rp-product-info {
+    padding: 12px;
+    margin: 12px 0;
+    border-radius: 8px;
+    background: var(--rp-background);
+    color: var(--rp-muted);
+    font-size: 13px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.rp-modal .rp-types-header {
+    margin: 22px 0 12px;
+}
+
+.rp-modal .rp-types-header h4 {
+    font-size: 14px;
+    margin: 0 0 5px;
+}
+
+/* =====================================================
+   TIPOS Y PRESENTACIONES COMERCIALES
+   ===================================================== */
+
+.rp-modal .rp-quality {
+    display: grid;
+    grid-template-columns:
+        minmax(120px, 1.2fr)
+        minmax(115px, 1fr)
+        minmax(80px, .75fr)
+        minmax(120px, 1fr)
+        minmax(120px, 1fr)
+        38px;
+
+    gap: 12px;
+    align-items: start;
+
+    padding: 14px;
+    margin: 12px 0;
+
+    border: 1px solid var(--rp-border);
+    border-radius: 10px;
+    background: var(--rp-background);
+}
+
+.rp-modal .rp-quality label {
+    margin: 0;
+    min-width: 0;
+}
+
+.rp-modal .rp-quality input:not(:disabled),
+.rp-modal .rp-quality select:not(:disabled) {
+    background: #FFFFFF;
+}
+
+.rp-modal .rp-quality .rp-note {
+    margin: 5px 0 0;
+    font-size: 11px;
+    overflow-wrap: anywhere;
+}
+
+.rp-modal .rp-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 38px;
+    height: 38px;
+
+    border: 1px solid #F2D6D6;
+    color: #A82A2A;
+    background: #FFF3F3;
+
+    border-radius: 8px;
+    cursor: pointer;
+
+    transition: background .2s;
+}
+
+.rp-modal .rp-quality > .rp-remove {
+    align-self: start;
+    margin-top: 25px;
+}
+
+.rp-modal .rp-remove:hover:not(:disabled) {
+    background: #FADDDD;
+}
+
+.rp-modal .rp-subtotal {
+    grid-column: 1 / -1;
+    padding-top: 12px;
+    border-top: 1px solid var(--rp-border);
+    text-align: right;
+    font-size: 12px;
+    color: var(--rp-muted);
+}
+
+.rp-modal .rp-subtotal strong {
+    margin-left: 6px;
+    color: var(--rp-dark);
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+}
+
+.rp-modal .rp-product-total {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+
+    margin-top: 18px;
+    padding: 14px;
+
+    color: var(--rp-primary);
+    background: var(--rp-light);
+    border-radius: 8px;
+
+    font-size: 13px;
+}
+
+.rp-modal .rp-product-total strong {
+    font-size: 19px;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+}
+
+/* =====================================================
+   RESUMEN DE COMPRA
+   ===================================================== */
+
+.rp-modal .rp-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    margin: 18px 0;
+}
+
+.rp-modal .rp-summary > div {
+    padding: 18px;
+    border: 1px solid var(--rp-border);
+    border-radius: 10px;
+    background: var(--rp-light);
+}
+
+.rp-modal .rp-summary small,
+.rp-modal .rp-summary span {
+    display: block;
+    color: var(--rp-muted);
+    font-size: 12px;
+}
+
+.rp-modal .rp-summary strong {
+    display: block;
+    margin: 8px 0;
+    font-size: clamp(22px, 3vw, 30px);
+    line-height: 1.3;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+}
+
+/* =====================================================
+   NEGOCIACIÓN CON EL PROVEEDOR
+   ===================================================== */
+
+.rp-modal .rp-negociacion {
+    padding: 18px;
+    margin: 18px 0;
+    border: 1px solid var(--rp-border);
+    border-radius: 10px;
+    background: var(--rp-background);
+}
+
+.rp-modal .rp-negociacion h4 {
+    margin: 0 0 8px;
+    font-size: 15px;
+}
+
+.rp-modal .rp-negociacion-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 16px 0 0;
+    cursor: pointer;
+}
+
+.rp-modal #rp-campo-valor-acordado {
+    max-width: 420px;
+    margin-top: 16px;
+}
+
+/* =====================================================
+   CONSOLIDADO FINANCIERO
+   ===================================================== */
+
+.rp-modal .rp-financial-summary {
+    padding: 18px;
+    border: 1px solid #C8DED0;
+    border-radius: 12px;
+}
+
+.rp-modal .rp-financial-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px 0;
+    font-size: 14px;
+}
+
+.rp-modal .rp-financial-row span {
+    color: var(--rp-muted);
+}
+
+.rp-modal .rp-financial-row strong {
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+}
+
+.rp-modal .rp-financial-total {
+    margin-top: 6px;
+    border-top: 1px solid var(--rp-border);
+    border-bottom: 1px solid var(--rp-border);
+    font-weight: 700;
+}
+
+.rp-modal .rp-financial-total strong {
+    font-size: 20px;
+}
+
+.rp-modal .rp-financial-pending {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 7px;
+    margin-top: 10px;
+    padding: 16px;
+    border-radius: 9px;
+    background: var(--rp-light);
+}
+
+.rp-modal .rp-financial-pending strong {
+    color: var(--rp-primary);
+    font-size: clamp(23px, 3vw, 32px);
+}
+
+/* =====================================================
+   ACCIONES Y ACCESIBILIDAD
+   ===================================================== */
+
+.rp-modal .rp-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    margin-top: 0;
+    padding: 18px 0 6px;
+    background: #FFFFFF;
+}
+
+.rp-modal button {
+    transition: background .2s, opacity .2s;
+}
+
+.rp-modal button:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+}
+
+.rp-modal button:focus-visible {
+    outline: 2px solid #27834E;
+    outline-offset: 2px;
+}
+
+.rp-modal .cat-message {
+    margin-top: 14px;
+}
+
+.rp-modal [hidden],
+.rp-provider-modal [hidden] {
+    display: none !important;
+}
+
+/* =====================================================
+   MODAL INDEPENDIENTE DE PROVEEDORES
+   ===================================================== */
+
+.cat-modal.rp-provider-modal {
+    width: min(480px, 92vw);
+    max-height: 90vh;
+    max-height: 90dvh;
+    margin: auto;
+    padding: 26px;
+    overflow: auto;
+}
+
+.rp-provider-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding-bottom: 18px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #DCE8DF;
+}
+
+.rp-provider-header i {
+    padding: 14px;
+    font-size: 24px;
+    background: #E8F5EE;
+    color: #145A32;
+    border-radius: 12px;
+}
+
+.rp-provider-header h2 {
+    margin: 0 0 6px;
+}
+
+.rp-provider-header p {
+    margin: 0;
+    font-size: 13px;
+    color: #6B7280;
+}
+
+.rp-provider-modal label input:not([type="checkbox"]) {
+    display: block;
+    width: 100%;
+    min-height: 43px;
+    margin-top: 6px;
+}
+
+.rp-provider-modal input[type="checkbox"] {
+    accent-color: #145A32;
+}
+
+.rp-provider-modal button:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+}
+
+/* =====================================================
+   RESPONSIVE — TABLETS Y MÓVILES
+   ===================================================== */
+
+@media (max-width: 1050px) {
+
+    .rp-modal .rp-quality {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .rp-modal .rp-quality > .rp-remove {
+        justify-self: end;
+    }
+}
+
+@media (max-width: 720px) {
+
+    .cat-modal.rp-modal {
+        width: 96vw;
+        padding: 18px;
+    }
+
+    .rp-modal .rp-product-card {
+        padding: 14px;
+    }
+
+    .rp-modal .rp-quality {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .rp-modal .rp-quality > .rp-remove {
+        grid-column: 2;
+        justify-self: end;
+    }
+
+    .rp-modal .rp-financial-row {
+        font-size: 13px;
+    }
+
+    .rp-modal .rp-financial-total strong {
+        font-size: 18px;
+    }
+}
+
+@media (max-width: 580px) {
+
+    .rp-modal .rp-provider-row,
+    .rp-modal .rp-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .rp-modal .rp-provider-row button {
+        width: 100%;
+    }
+
+    .rp-modal .rp-header {
+        gap: 10px;
+    }
+
+    .rp-modal h2 {
+        font-size: 20px;
+    }
+
+    .rp-modal .rp-icon {
+        width: 42px;
+        height: 42px;
+        font-size: 18px;
+    }
+
+    .rp-modal label input:not([type="checkbox"]),
+    .rp-modal label textarea,
+    .rp-modal label select {
+        font-size: 16px;
+    }
+
+    .rp-modal .rp-footer {
+        flex-direction: column;
+    }
+
+    .rp-modal .rp-footer button {
+        width: 100%;
+    }
+}
+
+@media (max-width: 400px) {
+
+    .rp-modal .rp-summary,
+    .rp-modal .rp-quality {
+        grid-template-columns: 1fr;
+    }
+
+    .rp-modal .rp-quality > .rp-remove {
+        grid-column: 1;
+        margin-top: 0;
+    }
+
+    .rp-modal .rp-financial-summary,
+    .rp-modal .rp-negociacion {
+        padding: 12px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .rp-modal *,
+    .rp-provider-modal * {
+        transition: none;
+        scroll-behavior: auto;
+    }
+}

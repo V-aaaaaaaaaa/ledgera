@@ -15,7 +15,7 @@
         <p class="cfg__marca">Led<span>gera</span></p>
         <h1>Configura tu puesto</h1>
         <p class="cfg__intro">
-            Cuéntanos <strong>qué productos vendes</strong> y sus <strong>calidades</strong>
+            Cuéntanos <strong>qué productos vendes</strong> y sus <strong>tipos</strong>
             (por ejemplo: Tomate → Chonto, Larga vida). Así podrás registrar ventas e inventario.
         </p>
     </header>
@@ -42,8 +42,8 @@
 
     <p class="cfg__ayuda">
         <i class="fas fa-circle-info"></i>
-        Escribe cada calidad y presiona <strong>Enter</strong> o <strong>+</strong>.
-        Si un producto no maneja calidades, déjalo vacío y se guarda como <em>Única</em>.
+        Escribe cada tipo y presiona <strong>Enter</strong> o <strong>+</strong>.
+        Si un producto no maneja tipos, déjalo vacío y se guarda como <em>Única</em>.
         Podrás agregar más después.
     </p>
 
@@ -67,11 +67,11 @@
             </button>
         </div>
 
-        <span class="cfg__etiqueta">Calidades</span>
+        <span class="cfg__etiqueta">Tipos</span>
         <div class="cfg__chips"></div>
         <div class="cfg__nueva">
             <input type="text" class="cfg__calidad" data-filtro="texto" maxlength="100" placeholder="ej: Chonto">
-            <button type="button" class="cfg__mas" aria-label="Agregar calidad"><i class="fas fa-plus"></i></button>
+            <button type="button" class="cfg__mas" aria-label="Agregar tipo"><i class="fas fa-plus"></i></button>
         </div>
     </article>
 </template>

@@ -55,41 +55,49 @@ class ProveedorController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $actor = $request->user();
-        $datos = $this->validar($request);
+    $actor = $request->user();
+    $datos = $this->validar($request);
 
-        // Ley 1581: sin autorización no se guardan datos del proveedor
-        if (!$request->boolean('consentimiento')) {
-            $this->abortar('Confirma que el proveedor autorizó el tratamiento de sus datos.', 400);
-        }
-
-        DB::transaction(function () use ($actor, $datos) {
-            $p = (new Proveedor())->forceFill([
-                'id_puesto' => $actor->id_puesto,      // siempre el puesto de quien registra
-                'nombre_razon_social' => $datos['nombre'],
-                'telefono' => $datos['telefono'] ?? null,
-                'contacto_principal' => $datos['contacto'] ?? null,
-                'estado' => 'Activo',
-                'consentimiento_datos' => now(),
-            ]);
-
-            $this->guardar($p);
-
-            Auditoria::registrar(
-                'PROVEEDOR_CREADO',
-                $p->id_proveedor,
-                $p->id_puesto,
-                $p->nombre_razon_social,
-                null,
-                'proveedores',
-                null,
-                $this->datosAuditoria($p)
-            );
-        });
-
-        return response()->json(['ok' => true, 'mensaje' => 'Proveedor registrado.'], 201);
+    if (!$request->boolean('consentimiento')) {
+        $this->abortar(
+            'Confirma que el proveedor autorizó el tratamiento de sus datos.',
+            400
+        );
     }
 
+    $proveedor = DB::transaction(function () use ($actor, $datos) {
+
+        $p = (new Proveedor())->forceFill([
+            'id_puesto' => $actor->id_puesto,
+            'nombre_razon_social' => $datos['nombre'],
+            'telefono' => $datos['telefono'] ?? null,
+            'contacto_principal' => $datos['contacto'] ?? null,
+            'estado' => 'Activo',
+            'consentimiento_datos' => now(),
+        ]);
+
+        $this->guardar($p);
+
+        Auditoria::registrar(
+            'PROVEEDOR_CREADO',
+            $p->id_proveedor,
+            $p->id_puesto,
+            $p->nombre_razon_social,
+            null,
+            'proveedores',
+            null,
+            $this->datosAuditoria($p)
+        );
+
+        return $p;
+    });
+
+    return response()->json([
+        'ok' => true,
+        'mensaje' => 'Proveedor registrado.',
+        'proveedor' => $proveedor->paraPantalla(),
+    ], 201);
+}
     public function update(Request $request, Proveedor $proveedor): JsonResponse
     {
         $datos = $this->validar($request);

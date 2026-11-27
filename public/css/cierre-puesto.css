@@ -1,0 +1,16 @@
+/* LEDGERA · Cierre del puesto (va dentro de la pantalla de cierre de caja) */
+.cpu h2 i { margin-right: 6px; color: var(--acento); }
+.cpu__ayuda { margin: 0 0 12px; color: var(--texto-suave); font-size: 15px; }
+.cpu__aviso { margin-bottom: 12px; padding: 10px 14px; border-radius: 10px; background: #FFF6E0; color: #8a5a00; line-height: 1.5; }
+.cpu__aviso[hidden], .cpu__total[hidden], .cpu__ultimo[hidden] { display: none; }
+.cpu__lista { margin: 0; padding: 0; list-style: none; }
+.cpu__lista li { display: flex; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px dashed var(--borde); }
+.cpu__lista small { display: block; color: var(--texto-suave); }
+.cpu__lista .cpu__descuadre b { color: #b3261e; }
+.cpu__num { text-align: right; font-size: 14px; }
+.cpu__vacio { color: var(--texto-suave); }
+.cpu__total { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.cpu__total div { padding: 10px; border-radius: 10px; background: var(--claro); }
+.cpu__total span { display: block; font-size: 13px; color: var(--texto-suave); }
+.cpu__total strong { color: var(--acento-oscuro); }
+.cpu__ultimo { margin: 14px 0 0; font-size: 14px; color: var(--texto-suave); }
