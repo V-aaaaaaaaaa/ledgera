@@ -46,7 +46,7 @@
     $('conCaja').hidden = false;
     $('totEfectivo').textContent = pesos(r.total_efectivo);
     $('totDigital').textContent = pesos(r.total_digital);
-    $('optPago').hidden = !r.es_dueno;           // pagar a proveedores es solo del Dueño
+    $('optPago').hidden = !r.puede_pagar;        // Dueño o Vendedor encargado
     llenarProveedores();
     pintarLista();
   }

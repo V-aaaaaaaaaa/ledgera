@@ -114,8 +114,7 @@
                     <span>Productos</span>
                 </a>
 
-            @if($esDueno)
-
+            @if($usuario->puede('gestionar_proveedores'))
                 <p class="op-section-label">GESTIÓN DEL NEGOCIO</p>
 
                 <a href="{{ route('proveedores.index') }}"
@@ -124,6 +123,9 @@
                     <i class="fas fa-truck"></i>
                     <span>Proveedores</span>
                 </a>
+            @endif
+
+            @if($esDueno)
 
                 <a href="{{ route('gestion.usuarios') }}"
                    class="op-link {{ request()->routeIs('gestion.usuarios*') ? 'is-active' : '' }}"

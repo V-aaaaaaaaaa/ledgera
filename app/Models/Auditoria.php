@@ -47,6 +47,8 @@ class Auditoria extends Model
         'CAJA_MONTO_CORREGIDO' => 'Corrigió el efectivo inicial de la caja',
         'CAJA_CERRADA' => 'Cerró la caja',
         'EGRESO_REGISTRADO' => 'Registró un egreso',
+        'ENCARGADO_ACTIVADO' => 'Nombró a un vendedor como encargado',
+        'ENCARGADO_QUITADO' => 'Le quitó el encargo a un vendedor',
         'PRODUCTO_CREADO' => 'Registró un producto',
         'CALIDAD_CREADA' => 'Registró una calidad de producto',
         'UMBRAL_CAMBIADO' => 'Cambió el límite de descuadre de caja',

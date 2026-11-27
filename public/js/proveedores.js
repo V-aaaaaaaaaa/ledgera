@@ -5,6 +5,7 @@
 const RUTA = '/proveedores';
 
 let proveedores = [];
+let puedeDesactivar = false;   // solo el Dueño (el Vendedor encargado no)
 
 const $ = (id) => document.getElementById(id);
 const tbody = $('tablaProveedores');
@@ -68,9 +69,10 @@ function pintarTabla() {
                         <button class="dropdown-item" data-action="editar" data-id="${p.id}">
                             <i class="fas fa-pen"></i> Editar
                         </button>
+                        ${puedeDesactivar ? `
                         <button class="dropdown-item ${activo ? 'danger' : ''}" data-action="estado" data-id="${p.id}">
                             <i class="fas fa-${activo ? 'ban' : 'check'}"></i> ${activo ? 'Desactivar' : 'Activar'}
-                        </button>
+                        </button>` : ''}
                     </div>
                 </div>
             </td>`;
@@ -82,6 +84,7 @@ async function cargar() {
     const data = await llamar('/datos');
     if (!data.ok) { if (data.mensaje) alert(data.mensaje); return; }
     proveedores = data.proveedores;
+    puedeDesactivar = !!data.puede_desactivar;
     pintarTabla();
 }
 

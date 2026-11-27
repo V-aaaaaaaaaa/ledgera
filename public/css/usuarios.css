@@ -581,3 +581,11 @@ body {
     line-height: 1.5;
     color: var(--texto-suave);
 }
+
+
+/* Vendedor encargado (tiene poderes operativos del Dueño) */
+.badge.encargado {
+    background: #FFF2DE;
+    color: #8a5a00;
+    border: 1px solid #F3D9A8;
+}

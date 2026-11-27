@@ -37,14 +37,14 @@ Route::middleware('rol:Dueno')
         Route::post('/omitir', [ConfiguracionInicialController::class, 'omitir'])->name('configuracion.omitir');
     });
 
-// Egresos (RF-014): Dueño y Vendedor. Los pagos a proveedores son solo del Dueño
+// Egresos (RF-014): Dueño y Vendedor. Los pagos a proveedores: Dueño o Vendedor encargado
 // (lo valida el controlador y la ruta de facturas).
 Route::prefix('egresos')->name('egresos.')->group(function () {
     Route::get('/', [EgresoController::class, 'index'])->name('index');
     Route::get('/datos', [EgresoController::class, 'datos'])->name('datos');
     Route::post('/', [EgresoController::class, 'store'])->name('store');
     Route::get('/proveedor/{proveedor}/facturas', [EgresoController::class, 'obligaciones'])
-        ->whereNumber('proveedor')->middleware('rol:Dueno')->name('facturas');
+        ->whereNumber('proveedor')->middleware('poder:pagar_proveedores')->name('facturas');
 });
 
 // Cierre de caja (RF-015): Dueño y Vendedor. El límite de descuadre solo lo cambia el Dueño.
@@ -61,15 +61,17 @@ Route::get('/proveedores/datos', [
     ProveedorController::class, 'datos'
 ])->name('proveedores.datos');
 
-// Proveedores: crear, editar y activar/desactivar es solo del Dueño
-Route::middleware('rol:Dueno')
+// Proveedores: crear y editar -> Dueño o Vendedor encargado.
+// Activar/desactivar -> solo el Dueño.
+Route::middleware('poder:gestionar_proveedores')
     ->prefix('proveedores')
     ->name('proveedores.')
     ->group(function () {
         Route::get('/', [ProveedorController::class, 'index'])->name('index');
         Route::post('/', [ProveedorController::class, 'store'])->name('store');
         Route::put('/{proveedor}', [ProveedorController::class, 'update'])->name('update');
-        Route::post('/{proveedor}/estado', [ProveedorController::class, 'cambiarEstado'])->name('estado');
+        Route::post('/{proveedor}/estado', [ProveedorController::class, 'cambiarEstado'])
+            ->middleware('rol:Dueno')->name('estado');
     });
 
 // Gestión exclusiva del dueño
@@ -105,6 +107,11 @@ Route::middleware('rol:Dueno')
                 Route::post('/{usuario}/restablecer-clave', [
                     UsuarioController::class, 'restablecerClave'
                 ])->name('restablecer');
+
+                // Nombrar o quitar Vendedor encargado (solo el Dueño)
+                Route::post('/{usuario}/encargado', [
+                    UsuarioController::class, 'cambiarEncargado'
+                ])->name('encargado');
             });
     });
 // Catálogos comerciales: Clientes y Productos

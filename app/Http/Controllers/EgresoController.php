@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Validator;
 /**
  * Egresos de caja (RF-014).
  * - Gastos de urgencia y Otros: Dueño y Vendedor, con nota obligatoria.
- * - Pago a proveedor: solo el Dueño. Se aplica a las facturas (entradas de mercancía)
+ * - Pago a proveedor: Dueño o Vendedor encargado. Se aplica a las facturas (entradas de mercancía)
  *   que él escoja, de la más antigua a la más nueva, sin pasarse de lo que se debe.
  * - Requiere caja abierta: todo egreso pertenece a una jornada.
  * - El egreso y su aplicación a las facturas se guardan juntos o no se guarda nada (RNF-007).
@@ -37,7 +37,7 @@ class EgresoController extends Controller
     {
         $actor = $request->user();
         $jornada = JornadaCaja::abiertaDe((int) $actor->id_puesto);
-        $esDueno = $actor->rol === 'Dueno';
+        $puedePagar = $actor->puede('pagar_proveedores');
 
         $egresos = $jornada
             ? Egreso::with(['usuario:id_usuario,nombre_completo', 'proveedor:id_proveedor,nombre_razon_social'])
@@ -60,11 +60,11 @@ class EgresoController extends Controller
         return response()->json([
             'ok' => true,
             'abierta' => $jornada !== null,
-            'es_dueno' => $esDueno,
+            'puede_pagar' => $puedePagar,
             'egresos' => $egresos,
             'total_efectivo' => $egresos->where('medio', 'Efectivo')->sum('monto'),
             'total_digital' => $egresos->where('medio', '!=', 'Efectivo')->sum('monto'),
-            'proveedores' => $esDueno ? $this->proveedoresConDeuda((int) $actor->id_puesto) : [],
+            'proveedores' => $puedePagar ? $this->proveedoresConDeuda((int) $actor->id_puesto) : [],
         ]);
     }
 
@@ -105,9 +105,9 @@ class EgresoController extends Controller
         $d = $this->validar($request);
         $esPago = $d['categoria'] === 'Pago_proveedor';
 
-        // Regla del equipo: pagar a proveedores es solo del Dueño
-        if ($esPago && $actor->rol !== 'Dueno') {
-            $this->abortar('Solo el Dueño puede registrar pagos a proveedores.', 403);
+        // Pagar a proveedores: Dueño o Vendedor encargado
+        if ($esPago && !$actor->puede('pagar_proveedores')) {
+            $this->abortar('Solo el Dueño o el encargado pueden registrar pagos a proveedores.', 403);
         }
 
         DB::transaction(function () use ($actor, $d, $esPago) {

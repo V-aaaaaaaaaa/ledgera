@@ -53,6 +53,7 @@ class UsuarioController extends Controller
                 'estado' => $u->estado,
                 'id_puesto' => $u->id_puesto,
                 'puesto' => $u->puesto?->nombre_puesto,
+                'encargado' => (bool) $u->es_encargado,
             ]);
 
         $puestos = Puesto::where('estado', 'Activo');
@@ -224,6 +225,11 @@ class UsuarioController extends Controller
                 'id_puesto' => $idPuestoNuevo,
             ]);
 
+            // Si cambia de puesto, deja de ser encargado (era confianza del Dueño anterior)
+            if ($cambiaPuesto && $u->es_encargado) {
+                $u->forceFill(['es_encargado' => false, 'encargado_desde' => null]);
+            }
+
             $this->guardar($u);
 
             Auditoria::registrar(
@@ -285,6 +291,63 @@ class UsuarioController extends Controller
             'ok' => true,
             'mensaje' => 'Contraseña restablecida.',
             'clave' => $clave,
+        ]);
+    }
+
+    /**
+     * Nombrar o quitar Vendedor encargado (solo el Dueño, sobre Vendedores de su puesto).
+     * El encargado recibe los poderes de Usuario::PODERES_DELEGABLES.
+     */
+    public function cambiarEncargado(Request $request, Usuario $usuario): JsonResponse
+    {
+        $validador = Validator::make($request->all(), ['activo' => ['required', 'boolean']]);
+
+        if ($validador->fails()) {
+            $this->abortar('Valor no válido.', 400);
+        }
+
+        $activar = $request->boolean('activo');
+
+        $u = DB::transaction(function () use ($request, $usuario, $activar) {
+            $u = Usuario::lockForUpdate()->findOrFail($usuario->id_usuario);
+
+            // Mismo filtro de Mi equipo: solo Vendedores del puesto del Dueño
+            $this->autorizarCuenta($request, $u);
+
+            if ($u->rol !== 'Vendedor') {
+                $this->abortar('Solo un Vendedor puede ser encargado.', 400);
+            }
+            if ($activar && $u->estado !== 'Activo') {
+                $this->abortar('Activa primero la cuenta del vendedor.', 400);
+            }
+            if ((bool) $u->es_encargado === $activar) {
+                return $u;   // ya estaba así
+            }
+
+            $u->forceFill([
+                'es_encargado' => $activar,
+                'encargado_desde' => $activar ? now() : null,
+            ])->save();
+
+            Auditoria::registrar(
+                $activar ? 'ENCARGADO_ACTIVADO' : 'ENCARGADO_QUITADO',
+                $u->id_usuario,
+                $u->id_puesto,
+                $activar ? 'Recibe poderes operativos del Dueño' : 'Vuelve a ser Vendedor normal',
+                null,
+                'usuarios',
+                ['es_encargado' => !$activar],
+                ['es_encargado' => $activar]
+            );
+
+            return $u;
+        });
+
+        return response()->json([
+            'ok' => true,
+            'mensaje' => $activar
+                ? "{$u->nombre_completo} ahora es encargado."
+                : "{$u->nombre_completo} ya no es encargado.",
         ]);
     }
 

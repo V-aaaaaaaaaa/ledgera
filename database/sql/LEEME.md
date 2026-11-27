@@ -5,6 +5,7 @@ Ejecutar en MySQL Workbench (MySQL 8.0.16 o superior) sobre un MySQL local.
 | Orden | Archivo | Qué hace |
 |---|---|---|
 | 0 | `000_ledgera_v2.sql` | Borra y crea la base `ledgera`: tablas, triggers de integridad, vistas y datos de prueba. Incluye auditoría e incidencias. |
+| 3 | `003_vendedor_encargado.sql` | Agrega a `usuarios` el interruptor de Vendedor encargado (`es_encargado`, `encargado_desde`). |
 
 Usuarios de prueba: soporte (Administrador), cmendoza (Dueño), afelipe (Vendedor), mrojas (Dueño del puesto 2).
 

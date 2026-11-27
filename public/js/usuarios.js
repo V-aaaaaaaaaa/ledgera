@@ -91,6 +91,7 @@ function renderTabla() {
             <td>
                 ${esc(u.usuario)}
                 <span class="badge ${activo ? 'active' : 'inactive'}">${activo ? 'Activo' : 'Inactivo'}</span>
+                ${u.encargado ? '<span class="badge encargado" title="Tiene poderes operativos del Dueño">Encargado</span>' : ''}
             </td>
             <td>${esc(u.nombre)}</td>
             <td>${esc(u.cedula)}</td>
@@ -105,6 +106,13 @@ function renderTabla() {
                         <button class="dropdown-item" data-action="editar" data-id="${u.id}">
                             <i class="fas fa-pen"></i> Editar
                         </button>
+
+                        ${!ES_ADMIN && u.rol === 'Vendedor' && activo ? `
+                            <button class="dropdown-item" data-action="encargado" data-id="${u.id}">
+                                <i class="fas fa-${u.encargado ? 'user-minus' : 'user-shield'}"></i>
+                                ${u.encargado ? 'Quitar encargado' : 'Hacer encargado'}
+                            </button>
+                        ` : ''}
 
                         ${!esCuentaPropia ? `
                             <button class="dropdown-item" data-action="restablecer" data-id="${u.id}">
@@ -156,6 +164,7 @@ document.addEventListener('click', (e) => {
         if (actionBtn.dataset.action === 'editar') abrirEditar(u);
         if (actionBtn.dataset.action === 'restablecer') restablecerClave(u);
         if (actionBtn.dataset.action === 'toggle') toggleActivo(u);
+        if (actionBtn.dataset.action === 'encargado') cambiarEncargado(u);
     }
 
     const cerrar = e.target.closest('[data-close]');
@@ -236,6 +245,19 @@ async function toggleActivo(u) {
     const activo = u.estado === 'Activo';
     if (!confirm(`¿Seguro que quieres ${activo ? 'desactivar' : 'activar'} a ${u.nombre}?`)) return;
     const data = await enviar('/' + u.id + '/estado', 'POST', { activo: !activo });
+    if (!data.ok) { if (data.mensaje) alert(data.mensaje); return; }
+    await cargarUsuarios();
+}
+
+// ==================== VENDEDOR ENCARGADO (solo Dueño) ====================
+async function cambiarEncargado(u) {
+    const activar = !u.encargado;
+    const texto = activar
+        ? `¿Hacer encargado a ${u.nombre}?\n\nPodrá pagar a proveedores y crear o editar proveedores.\nNO podrá gestionar tu equipo, cambiar el límite de caja ni la configuración del puesto.`
+        : `¿Quitarle el encargo a ${u.nombre}?\nVolverá a ser un vendedor normal.`;
+    if (!confirm(texto)) return;
+
+    const data = await enviar('/' + u.id + '/encargado', 'POST', { activo: activar });
     if (!data.ok) { if (data.mensaje) alert(data.mensaje); return; }
     await cargarUsuarios();
 }
