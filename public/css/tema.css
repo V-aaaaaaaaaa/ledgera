@@ -19,6 +19,7 @@ body.tema-inventario { --h: 26;  --s: 78%; }   /* naranja */
 body.tema-fiado      { --h: 6;   --s: 62%; }   /* coral */
 body.tema-egresos    { --h: 345; --s: 58%; }   /* vino */
 body.tema-cierre     { --h: 236; --s: 48%; }   /* índigo */
+body.tema-proveedores { --h: 190; --s: 60%; }  /* azul petróleo */
 
 /* ---------- Tarjetas del dashboard: cada una con el color de su módulo ---------- */
 .card[data-modulo="usuarios"]      { --h: 212; --s: 62%; }

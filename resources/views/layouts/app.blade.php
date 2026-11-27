@@ -13,7 +13,11 @@
 
 @php
     $u = auth()->user();
-    $datosUsuario = $u ? ['nombre' => $u->nombre_completo, 'rol' => $u->rol] : null;
+    $datosUsuario = $u ? [
+        'id' => $u->id_usuario,
+        'nombre' => $u->nombre_completo,
+        'rol' => $u->rol
+    ] : null;
 @endphp
 <script>
     window.LEDGERA = {
@@ -22,6 +26,7 @@
     };
 </script>
 <script src="{{ asset('js/api.js') }}?v={{ filemtime(public_path('js/api.js')) }}"></script>
+<script src="{{ asset('js/filtros.js') }}?v={{ filemtime(public_path('js/filtros.js')) }}"></script>
 @stack('scripts')
 </body>
 </html>

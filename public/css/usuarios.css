@@ -544,3 +544,48 @@ body {
         width: 100%;
     }
 }
+
+
+/* Selectores de formularios */
+
+.form-row select {
+    width: 100%;
+    min-height: 44px;
+    padding: 12px 14px;
+    border: 2px solid var(--borde);
+    border-radius: 9px;
+    background-color: var(--suave);
+    color: var(--acento-oscuro);
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+
+.form-row select:focus {
+    border-color: var(--acento);
+}
+
+.form-row select:disabled {
+    background-color: #E8F5EE;
+    color: #145A32;
+    opacity: 1;
+    cursor: not-allowed;
+}
+
+.form-row .hint {
+    display: block;
+    margin-top: 6px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--texto-suave);
+}
+
+
+/* Vendedor encargado (tiene poderes operativos del Dueño) */
+.badge.encargado {
+    background: #FFF2DE;
+    color: #8a5a00;
+    border: 1px solid #F3D9A8;
+}

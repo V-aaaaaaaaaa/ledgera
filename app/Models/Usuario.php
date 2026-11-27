@@ -4,11 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Support\Facades\DB;
 
-/**
- * Cuenta de acceso a Ledgera (tabla `usuarios`).
- * Roles: Administrador, Dueno, Vendedor.
- */
 class Usuario extends Authenticatable
 {
     protected $table = 'usuarios';
@@ -21,14 +18,10 @@ class Usuario extends Authenticatable
     {
         return [
             'debe_cambiar_clave' => 'boolean',
-            'fecha_bloqueo' => 'datetime',
+            'bloqueado_hasta' => 'datetime',
+            'es_encargado' => 'boolean',
+            'encargado_desde' => 'datetime',
         ];
-    }
-
-    // La clave vive en la columna password_hash (Laravel espera "password")
-    public function getAuthPassword(): string
-    {
-        return (string) $this->password_hash;
     }
 
     public function getAuthPasswordName(): string
@@ -36,7 +29,6 @@ class Usuario extends Authenticatable
         return 'password_hash';
     }
 
-    // La tabla no tiene remember_token y no usamos "recordarme"
     public function getRememberTokenName(): string
     {
         return '';
@@ -44,7 +36,34 @@ class Usuario extends Authenticatable
 
     public function puesto(): BelongsTo
     {
-        return $this->belongsTo(Puesto::class, 'id_puesto', 'id_puesto');
+        return $this->belongsTo(
+            Puesto::class,
+            'id_puesto',
+            'id_puesto'
+        );
+    }
+
+    /**
+     * Poderes del Dueño que puede recibir un Vendedor encargado.
+     * Lo que NO está aquí (Mi equipo, límite de descuadre, productos y calidades,
+     * desactivar proveedores, nombrar encargados) es solo del Dueño, siempre.
+     */
+    public const PODERES_DELEGABLES = [
+        'pagar_proveedores',       // registrar pagos a proveedores (egresos)
+        'gestionar_proveedores',   // crear y editar proveedores
+        'ajustes_cierre',          // ajustes post-cierre (RF-016, cuando se construya)
+    ];
+
+    // ¿Puede usar este poder? Dueño: todos. Vendedor encargado: solo los delegables.
+    public function puede(string $poder): bool
+    {
+        if ($this->rol === 'Dueno') {
+            return true;
+        }
+
+        return $this->rol === 'Vendedor'
+            && $this->es_encargado
+            && in_array($poder, self::PODERES_DELEGABLES, true);
     }
 
     public function esAdministrador(): bool
@@ -52,13 +71,24 @@ class Usuario extends Authenticatable
         return $this->rol === 'Administrador';
     }
 
-    // Página a la que va el usuario según su estado y su rol
     public function rutaInicio(): string
     {
         if ($this->debe_cambiar_clave) {
             return route('clave.form');
         }
 
-        return $this->esAdministrador() ? route('admin.dashboard') : route('dashboard');
+        // Primer ingreso del Dueño: si su puesto no tiene productos, primero los registra
+        // (a menos que haya dicho "Lo hago después" en esta sesión)
+        if (
+            $this->rol === 'Dueno'
+            && !session('configuracion_omitida')
+            && !DB::table('productos')->where('id_puesto', $this->id_puesto)->exists()
+        ) {
+            return route('configuracion.inicial');
+        }
+
+        return $this->esAdministrador()
+            ? route('admin.dashboard')
+            : route('dashboard');
     }
 }

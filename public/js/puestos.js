@@ -186,7 +186,8 @@ function abrirCambiarDueno(p) {
 
     const select = $('ownerSelect');
     select.innerHTML = '<option value="">-- Selecciona un dueño --</option>';
-    duenos.forEach((d) => {
+    duenos.filter(d => Number(d.id_puesto) === Number(p.id))
+    .forEach((d) => {
         const opt = document.createElement('option');
         opt.value = d.id;
         // Si ya dirige otro puesto, se avisa (ese puesto se quedará sin Dueño)

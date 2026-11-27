@@ -9,10 +9,11 @@ const PAGINAS_MODULO = {
   ventas:        null,   // '/ventas'  (pendiente de portar a Laravel)
   inventario:    null,   // '/inventario'  (pendiente de portar a Laravel)
   fiado:         null,   // '/fiado'
-  egresos:       null,   // '/egresos'
+  egresos:       '/egresos',
   exportaciones: null,   // '/exportaciones'  (solo Dueño)
-  equipo:        null,   // '/equipo'  (solo Dueño, desde el menú del perfil)
-  cierre:        null    // '/cierre-caja'
+  equipo:        '/gestion/usuarios',   // solo Dueño, desde el menú del perfil
+  proveedores:   '/proveedores',        // solo Dueño, desde el menú del perfil
+  cierre:        '/cierre-caja'
 };
 
 let sesion = null;
@@ -58,7 +59,7 @@ function avisar(texto) {
 
 function irAModulo(modulo) {
   const destino = PAGINAS_MODULO[modulo];
-  if (destino) window.location.href = destino;
+  if (destino) window.location.href = window.LEDGERA.base + destino;
   else avisar("Este módulo estará disponible pronto.");
 }
 
@@ -135,8 +136,7 @@ function initCards() {
   document.querySelectorAll(".card").forEach((card) => {
     card.addEventListener("click", () => irAModulo(card.dataset.modulo));
   });
-  const btnCierre = document.getElementById("btnCierre");
-  if (btnCierre) btnCierre.addEventListener("click", () => irAModulo("cierre"));
+  // El botón de caja (abrir / cierre) lo maneja js/caja.js según el estado de la caja
 }
 
 // -----------------------------------------------------

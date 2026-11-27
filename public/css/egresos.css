@@ -1,0 +1,122 @@
+/* =====================================================
+   LEDGERA · Egresos (color vino: tema-egresos)
+   Celular primero: botones de 48-54 px y montos grandes.
+   ===================================================== */
+
+.egr { max-width: 600px; margin: 0 auto; }
+.egr__cargando { text-align: center; color: var(--texto-suave); }
+section[hidden] { display: none; }
+
+.egr__totales { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.egr__totales div { padding: 14px; border-radius: 14px; background: #fff; border: 1px solid var(--borde); text-align: center; }
+.egr__totales span { display: block; font-size: 14px; color: var(--texto-suave); }
+.egr__totales strong { font-size: 1.5rem; color: var(--acento); }
+
+.egr__tarjeta { margin-bottom: 16px; padding: 18px; border: 1px solid var(--borde); border-radius: 16px; background: #fff; }
+.egr__tarjeta h2 { margin: 0 0 6px; font-size: 1.15rem; color: var(--acento-oscuro); }
+
+.egr__etq { display: block; margin: 16px 0 8px; font-weight: 700; color: var(--acento-oscuro); }
+.egr__etq small { font-weight: 400; color: var(--texto-suave); }
+
+.egr__opciones { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.egr__opciones--medio { grid-template-columns: repeat(4, 1fr); }
+
+.egr__opciones button {
+    min-height: 48px;
+    padding: 8px 10px;
+    border: 2px solid var(--borde);
+    border-radius: 12px;
+    background: #fff;
+    color: var(--acento-oscuro);
+    font: 600 15px inherit;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.egr__opciones button[hidden] { display: none; }
+.egr__opciones button.activo { border-color: var(--acento); background: var(--claro); color: var(--acento); }
+
+.egr__campo {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 48px;
+    padding: 10px 14px;
+    border: 2px solid var(--borde);
+    border-radius: 12px;
+    background: var(--suave);
+    font: 16px inherit;
+    font-family: inherit;
+    color: var(--acento-oscuro);
+}
+
+.egr__campo:focus { outline: none; border-color: var(--acento); }
+.egr__campo[hidden] { display: none; }
+textarea.egr__campo { resize: vertical; }
+
+.egr__monto { display: flex; align-items: center; gap: 6px; padding: 4px 16px; border: 3px solid var(--borde); border-radius: 14px; background: var(--suave); }
+.egr__monto:focus-within { border-color: var(--acento); }
+.egr__monto span { font-size: 1.8rem; font-weight: 700; color: var(--acento-oscuro); }
+.egr__monto input { width: 100%; border: none; background: transparent; font: 700 2rem inherit; font-family: inherit; color: var(--acento-oscuro); outline: none; }
+
+.egr__facturas { margin-top: 10px; }
+
+.egr__factura {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 56px;
+    margin-bottom: 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--borde);
+    border-radius: 12px;
+    cursor: pointer;
+}
+
+.egr__factura input { width: 22px; height: 22px; accent-color: var(--acento); flex-shrink: 0; }
+.egr__factura span { flex: 1; font-size: 15px; }
+.egr__factura small { display: block; color: var(--texto-suave); }
+.egr__factura b { white-space: nowrap; color: var(--acento); }
+
+.egr__seleccion { margin: 6px 0 0; font-size: 14px; color: var(--texto-suave); }
+.egr__aviso { margin: 0; padding: 10px; border-radius: 10px; background: var(--claro); }
+.egr__aviso[hidden], .egr__seleccion[hidden] { display: none; }
+
+.egr__msg { margin: 14px 0 0; padding: 10px 14px; border-radius: 10px; background: #FDECEA; color: #b3261e; font-weight: 600; }
+.egr__msg[hidden] { display: none; }
+
+.egr__btn {
+    width: 100%;
+    min-height: 54px;
+    margin-top: 16px;
+    border: none;
+    border-radius: 12px;
+    background: var(--acento);
+    color: #fff;
+    font: 700 17px inherit;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.egr__btn:disabled { opacity: .6; cursor: wait; }
+
+.egr__lista { margin: 0; padding: 0; list-style: none; }
+.egr__lista li { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px dashed var(--borde); }
+.egr__lista p { margin: 4px 0; }
+.egr__lista small { color: var(--texto-suave); }
+.egr__item-der { text-align: right; white-space: nowrap; }
+.egr__item-der strong { display: block; font-size: 1.1rem; color: var(--acento-oscuro); }
+
+.egr__tipo { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; background: var(--claro); color: var(--acento); }
+.egr__tipo--Pago_proveedor { background: #E8F0FB; color: #1d4f91; }
+.egr__tipo--Gasto_urgencia { background: #FFF2DE; color: #8a5a00; }
+
+.egr__vacio-lista { margin: 8px 0 0; color: var(--texto-suave); }
+.egr__vacio-lista[hidden] { display: none; }
+
+.egr__vacio { padding: 40px 20px; text-align: center; color: var(--acento-oscuro); }
+.egr__vacio i { font-size: 3rem; color: var(--acento); }
+.egr__vacio .egr__btn { max-width: 320px; }
+
+@media (max-width: 420px) {
+    .egr__opciones--medio { grid-template-columns: repeat(2, 1fr); }
+}

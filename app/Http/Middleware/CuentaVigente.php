@@ -7,42 +7,57 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
-/**
- * Revalida en cada petición que la cuenta siga activa (y su puesto) y que ya no
- * tenga una clave temporal. Uso: ->middleware('cuenta') o 'cuenta:temporal'
- * (esta última deja pasar a quien aún tiene clave temporal: solo para cambiarla).
- */
 class CuentaVigente
 {
-    public function handle(Request $request, Closure $next, ?string $modo = null): Response
-    {
+    public function handle(
+        Request $request,
+        Closure $next,
+        ?string $modo = null
+    ): Response {
         $u = $request->user();
         $motivo = null;
 
         if ($u->estado !== 'Activo') {
-            $motivo = 'Tu cuenta no está activa. Habla con tu superior.';
-        } elseif (! $u->esAdministrador()) {
+            $motivo = 'Tu cuenta no está activa.';
+        } elseif (
+            $u->bloqueado_hasta !== null
+            && now()->lt($u->bloqueado_hasta)
+        ) {
+            $motivo = 'Tu cuenta está bloqueada.';
+        } elseif (!$u->esAdministrador()) {
             if ($u->puesto === null) {
-                $motivo = 'Tu cuenta no tiene un puesto asignado. Habla con el Administrador.';
+                $motivo = 'No tienes un puesto asignado.';
             } elseif ($u->puesto->estado !== 'Activo') {
-                $motivo = 'Tu puesto está inactivo. Habla con el Administrador.';
+                $motivo = 'Tu puesto está inactivo.';
             }
         }
 
         if ($motivo !== null) {
             Auth::logout();
+
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
             return $request->expectsJson()
-                ? response()->json(['ok' => false, 'mensaje' => $motivo], 401)
-                : redirect()->route('login');
+                ? response()->json([
+                    'ok' => false,
+                    'mensaje' => $motivo,
+                ], 401)
+                : redirect()->route('login')
+                    ->withErrors(['login' => $motivo]);
         }
 
-        if ($modo !== 'temporal' && $u->debe_cambiar_clave) {
+        // Impedir el acceso con contraseña temporal
+        if (
+            $modo !== 'temporal'
+            && $u->debe_cambiar_clave
+        ) {
             return $request->expectsJson()
-                ? response()->json(['ok' => false, 'cambiar_clave' => true,
-                                    'mensaje' => 'Primero debes cambiar tu clave temporal.'], 403)
+                ? response()->json([
+                    'ok' => false,
+                    'cambiar_clave' => true,
+                    'mensaje' => 'Primero debes cambiar tu contraseña temporal.',
+                ], 403)
                 : redirect()->route('clave.form');
         }
 

@@ -1,0 +1,137 @@
+/* LEDGERA — Layout compartido: navegación y contenido. */
+body:has(.op-shell) { margin:0; padding:0; min-height:100vh; background:#F5F7F6; overflow-x:hidden; }
+.op-shell { --op-primary:#103D2F; --op-accent:#65D99A; --op-sidebar-width:246px; display:grid; grid-template-columns:var(--op-sidebar-width) minmax(0,1fr); min-height:100dvh; width:100%; background:#F5F7F6; font-family:Inter,Arial,sans-serif; color:#1F2937; transition:grid-template-columns .2s ease; }
+.op-shell *, .op-shell *::before,.op-shell *::after { box-sizing:border-box; }
+.op-sidebar { position:sticky; top:0; height:100dvh; display:flex; flex-direction:column; min-height:0; padding:22px 13px 14px; background:#103D2F; color:#fff; z-index:100; overflow-y:auto; scrollbar-width:thin; scrollbar-color:#46715B transparent; }
+.op-brand-row { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:0 7px; margin-bottom:24px; }
+.op-brand { color:#fff; font-size:27px; font-weight:800; letter-spacing:-1.5px; text-decoration:none; white-space:nowrap; }
+.op-brand span { color:#65D99A; }
+.op-icon-button { display:grid; place-items:center; width:36px; height:36px; flex-shrink:0; border:0; border-radius:9px; background:#ffffff14; color:#fff; font-size:16px; cursor:pointer; }
+.op-icon-button:hover { background:#ffffff2e; }
+.op-business { display:flex; align-items:center; gap:10px; padding:12px; background:#ffffff0d; border:1px solid #ffffff18; border-radius:12px; margin-bottom:12px; }
+.op-business-icon,.op-avatar { display:grid; place-items:center; width:36px; height:36px; flex-shrink:0; background:#28634A; color:#b4f0ca; border-radius:10px; }
+.op-avatar { border-radius:50%; background:#D9F1E2; color:#145A32; font-weight:700; }
+.op-business-info,.op-account-info { min-width:0; }
+.op-business-info small,.op-account-info small { display:block; color:#b8d2c3; font-size:11px; margin-bottom:4px; }
+.op-business-info strong,.op-account-info strong { display:block; font-size:12px; color:white; line-height:1.45; overflow-wrap:anywhere; }
+.op-navigation { flex:1 0 auto; }
+.op-section-label { margin:21px 10px 8px; color:#a9c6b5; font-size:10px; font-weight:700; letter-spacing:.9px; white-space:nowrap; }
+.op-link { display:flex; align-items:center; gap:12px; width:100%; min-height:46px; padding:10px 12px; margin:3px 0; border:0; border-radius:9px; background:transparent; color:#e0eee5; font:inherit; font-size:13px; font-weight:500; text-align:left; text-decoration:none; white-space:nowrap; cursor:pointer; }
+.op-link > i:first-child { width:20px; text-align:center; flex-shrink:0; font-size:16px; }
+.op-link:hover { background:#ffffff15; color:#fff; }
+.op-link.is-active { background:#28674B; color:#fff; font-weight:600; }
+.op-link.is-active > i:first-child { color:#84EBAB; }
+.op-account { display:flex; align-items:center; gap:10px; padding:16px 6px 10px; margin-top:16px; border-top:1px solid #ffffff20; }
+.op-account-actions form { margin:0; }
+.op-logout { color:#ffc0c0; }
+.op-content { min-width:0; width:100%; background:#F5F7F6; }
+.op-shell.is-collapsed { --op-sidebar-width:72px; }
+.op-shell.is-collapsed .op-brand-row { justify-content:center; padding:0; }
+.op-shell.is-collapsed .op-brand-row .op-brand,.op-shell.is-collapsed .op-business-info,.op-shell.is-collapsed .op-account-info,.op-shell.is-collapsed .op-section-label,.op-shell.is-collapsed .op-link span { display:none; }
+.op-shell.is-collapsed .op-link,.op-shell.is-collapsed .op-account,.op-shell.is-collapsed .op-business { justify-content:center; padding-left:0; padding-right:0; }
+.op-shell.is-collapsed .op-business { border:0; background:transparent; }
+.op-shell a:focus-visible,.op-shell button:focus-visible,.op-shell summary:focus-visible { outline:2px solid #65D99A; outline-offset:3px; }
+.op-mobile-bar,.op-mobile-close { display:none; }
+.op-overlay { position:fixed; inset:0; border:0; background:#0a1e148c; z-index:99; }
+.op-overlay[hidden] { display:none; }
+/* Catálogos y equipo mantienen sus propios estilos de contenido. */
+.op-shell .cat-header { min-height:72px; padding:15px 28px; background:#fff; color:#103D2F; border-bottom:1px solid #E2E9E5; }
+.op-shell .cat-header > strong { display:none; }
+.op-shell .cat-back,.op-shell .cat-user { color:#103D2F; }
+.op-shell .cat-main { max-width:1440px; margin:0 auto; }
+.op-shell .modal-reporte { z-index:1000; }
+@media(max-width:850px) {
+ .op-shell,.op-shell.is-collapsed { display:block; }
+ .op-mobile-bar { display:flex; align-items:center; justify-content:space-between; min-height:64px; padding:10px 18px; position:sticky; top:0; background:#103D2F; color:#fff; z-index:98; }
+ .op-sidebar { position:fixed; inset:0 auto 0 0; width:min(280px,85vw); transform:translateX(-100%); visibility:hidden; transition:transform .2s ease,visibility .2s ease; }
+ .op-shell.mobile-open .op-sidebar { transform:translateX(0); visibility:visible; }
+ .op-mobile-close { display:grid; }
+ #opCollapse { display:none; }
+ .op-shell.is-collapsed .op-brand-row .op-brand,.op-shell.is-collapsed .op-business-info,.op-shell.is-collapsed .op-account-info,.op-shell.is-collapsed .op-section-label,.op-shell.is-collapsed .op-link span { display:revert; }
+ .op-shell.is-collapsed .op-brand-row { justify-content:space-between; }
+ .op-shell.is-collapsed .op-link,.op-shell.is-collapsed .op-account,.op-shell.is-collapsed .op-business { justify-content:flex-start; padding-left:12px; padding-right:12px; }
+ .home-dashboard { min-height:calc(100dvh - 64px); }
+}
+@media(prefers-reduced-motion:reduce) { .op-shell,.op-shell * { transition:none!important; } }
+
+.avatar-dueno {
+    background: #E1F2E6;
+    color: #145A32;
+}
+
+.avatar-vendedor {
+    background: #E1F2EE;
+    color: #246B59;
+}
+
+.op-avatar i {
+    font-size: 17px;
+}
+
+/* Integración del dashboard con el panel lateral */
+.op-home .op-content {
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+    background:
+        linear-gradient(
+            180deg,
+            rgba(15, 61, 46, .65),
+            rgba(15, 61, 46, .85)
+        ),
+        url('assets/fondo-ledgera.jpg') center / cover no-repeat;
+}
+
+.op-home .cards-container {
+    grid-template-columns: repeat(
+        auto-fit, minmax(min(180px, 100%), 1fr)
+    );
+}
+
+.op-home .header {
+    z-index: 90;
+}
+
+.op-shell .modal-caja,
+.op-shell .modal-overlay {
+    z-index: 1000;
+}
+/* Corrección de altura y desplazamiento */
+
+html:has(.op-shell) {
+    height: auto;
+    min-height: 100%;
+}
+
+body:has(.op-shell) {
+    display: block;
+    height: auto;
+    min-height: 100dvh;
+}
+
+.op-shell {
+    min-height: 100dvh;
+    align-items: start;
+}
+
+.op-content {
+    min-width: 0;
+    min-height: 100dvh;
+}
+
+.op-home .op-content {
+    align-self: stretch;
+}
+
+.op-home .main {
+    flex: 1 0 auto;
+}
+
+@media (min-width: 851px) {
+    .op-sidebar {
+        position: sticky;
+        top: 0;
+        height: 100dvh;
+        overflow-y: auto;
+    }
+}

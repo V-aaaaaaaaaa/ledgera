@@ -1,4 +1,6 @@
-@extends('layouts.app')
+@extends(auth()->user()->esAdministrador()
+    ? 'layouts.app'
+    : 'layouts.operativo')
 
 @section('titulo', 'LEDEGERA - Usuarios')
 @section('tema', 'tema-usuarios')
@@ -8,14 +10,20 @@
     <link rel="stylesheet" href="{{ asset('css/usuarios.css') }}?v={{ filemtime(public_path('css/usuarios.css')) }}">
 @endpush
 
-@section('contenido')
+@section(auth()->user()->esAdministrador()
+    ? 'contenido'
+    : 'operativo-contenido')
     <!-- HEADER (mismo patrón del dashboard) -->
     <header class="app-header">
         <button class="btn-back" id="btnBack" title="Volver al dashboard">
             <i class="fas fa-arrow-left"></i>
         </button>
 
-        <h1 class="header-title">Usuarios</h1>
+        <h1 class="header-title">
+            {{ auth()->user()->esAdministrador()
+                ? 'Gestión de usuarios'
+                : 'Gestión de vendedores' }}
+        </h1>
 
         <div class="header-user">
             <span id="headerUserName">Admin</span>
@@ -73,32 +81,44 @@
             <form class="modal-form" id="createUserForm">
                 <div class="form-row">
                     <label for="newUsuario">Usuario *</label>
-                    <input type="text" id="newUsuario" placeholder="ej: jperez" required />
+                    <input type="text" id="newUsuario" placeholder="ej: jperez" data-filtro="usuario" maxlength="50" autocomplete="off" required />
                 </div>
 
                 <div class="form-row">
                     <label for="newNombre">Nombre completo *</label>
-                    <input type="text" id="newNombre" placeholder="ej: Juan Pérez" required />
+                    <input type="text" id="newNombre" placeholder="ej: Juan Pérez" data-filtro="letras" maxlength="150" required />
                 </div>
 
                 <div class="form-row">
                     <label for="newCedula">Cédula *</label>
-                    <input type="text" id="newCedula" placeholder="ej: 1020304050" required />
+                    <input type="text" id="newCedula" placeholder="ej: 1020304050" data-filtro="numeros" inputmode="numeric" maxlength="15" required />
                 </div>
 
+                
+
+                
+                <div class="form-row">
+                    @if(auth()->user()->esAdministrador())
+                        <label for="newRol">Rol *</label>
+                        <select id="newRol" required>
+                            <option value="Vendedor">Vendedor</option>
+                            <option value="Dueno">Dueño</option>
+                            <option value="Administrador">Administrador</option>
+                        </select>
+                    @else
+                        <label for="newRol">Rol</label>
+                        <select id="newRol" disabled>
+                            <option value="Vendedor" selected>Vendedor</option>
+                        </select>
+                        <small class="hint">Desde aquí solo creas Vendedores de tu puesto.</small>
+                    @endif
+                </div>
+                
                 <div class="form-row" id="rowNewPuesto">
                     <label for="newPuesto">Puesto *</label>
                     <select id="newPuesto" required></select>
                 </div>
 
-                <div class="form-row">
-                    <label for="newRol">Rol *</label>
-                    <select id="newRol" required>
-                        <option value="Vendedor">Vendedor</option>
-                        <option value="Dueno">Dueño</option>
-                        <option value="Administrador">Administrador</option>
-                    </select>
-                </div>
 
                 <small class="hint">El sistema genera una clave temporal y te la muestra una sola vez. El usuario deberá cambiarla al primer ingreso.</small>
 
@@ -130,17 +150,17 @@
 
                 <div class="form-row">
                     <label for="editUsuario">Usuario *</label>
-                    <input type="text" id="editUsuario" required />
+                    <input type="text" id="editUsuario" data-filtro="usuario" maxlength="50" autocomplete="off" required />
                 </div>
 
                 <div class="form-row">
                     <label for="editNombre">Nombre completo *</label>
-                    <input type="text" id="editNombre" required />
+                    <input type="text" id="editNombre" data-filtro="letras" maxlength="150" required />
                 </div>
 
                 <div class="form-row">
                     <label for="editCedula">Cédula *</label>
-                    <input type="text" id="editCedula" required />
+                    <input type="text" id="editCedula" data-filtro="numeros" inputmode="numeric" maxlength="15" required />
                 </div>
 
                 <div class="form-row" id="rowEditPuesto">

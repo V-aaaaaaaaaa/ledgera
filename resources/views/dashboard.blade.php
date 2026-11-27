@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.operativo')
 
 @section('titulo', 'Ledgera · Dashboard')
 @section('tema', 'tema-operativo')
@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="{{ asset('css/dashboard.css') }}?v={{ filemtime(public_path('css/dashboard.css')) }}">
 @endpush
 
-@section('contenido')
+@section('operativo-contenido')
   <!-- Fondos decorativos -->
   <div class="bg-blob bg-blob--1"></div>
   <div class="bg-blob bg-blob--2"></div>
@@ -29,6 +29,12 @@
           <svg viewBox="0 0 640 512" aria-hidden="true"><path d="M144 0a80 80 0 1 1 0 160A80 80 0 1 1 144 0zM512 0a80 80 0 1 1 0 160A80 80 0 1 1 512 0zM0 298.7C0 239.8 47.8 192 106.7 192h42.7c15.9 0 31 3.5 44.6 9.7c-1.3 7.2-1.9 14.7-1.9 22.3c0 38.2 16.8 72.5 43.3 96c-.2 0-.4 0-.7 0H21.3C9.6 320 0 310.4 0 298.7zM405.3 320c-.2 0-.4 0-.7 0c26.6-23.5 43.3-57.8 43.3-96c0-7.6-.7-15-1.9-22.3c13.6-6.3 28.7-9.7 44.6-9.7h42.7C592.2 192 640 239.8 640 298.7c0 11.6-9.6 21.3-21.3 21.3H405.3zM224 224a96 96 0 1 1 192 0 96 96 0 1 1 -192 0zM128 485.3C128 411.7 187.7 352 261.3 352H378.7C452.3 352 512 411.7 512 485.3c0 14.7-11.9 26.7-26.7 26.7H154.7c-14.7 0-26.7-11.9-26.7-26.7z"/></svg>
           Mi equipo
         </a>
+        @if(auth()->user()->puede('gestionar_proveedores'))
+        <a href="#" role="menuitem" data-menu-modulo="proveedores">
+          <svg viewBox="0 0 640 512" aria-hidden="true"><path d="M48 0C21.5 0 0 21.5 0 48V368c0 26.5 21.5 48 48 48H64c0 53 43 96 96 96s96-43 96-96H384c0 53 43 96 96 96s96-43 96-96h32c17.7 0 32-14.3 32-32s-14.3-32-32-32V288 256 237.3c0-17-6.7-33.3-18.7-45.3L512 114.7c-12-12-28.3-18.7-45.3-18.7H416V48c0-26.5-21.5-48-48-48H48zM416 160h50.7L544 237.3V256H416V160zM112 416a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm368-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z"/></svg>
+          Proveedores
+        </a>
+        @endif
         <a href="{{ route('clave.form') }}" role="menuitem">
           <svg viewBox="0 0 512 512" aria-hidden="true"><path d="M495.9 166.6c3.2 8.7 .5 18.4-6.4 24.6l-43.3 39.4c1.1 8.3 1.7 16.8 1.7 25.4s-.6 17.1-1.7 25.4l43.3 39.4c6.9 6.2 9.6 15.9 6.4 24.6-4.4 11.9-9.7 23.3-15.8 34.3l-4.7 8.1c-6.6 11-14 21.4-22.1 31.2-5.9 7.2-15.7 9.6-24.5 6.8l-55.7-17.7c-13.4 10.3-28.2 18.9-44 25.4l-12.5 57.1c-2 9.1-9 16.3-18.2 17.8-13.6 2.3-27.5 3.5-41.6 3.5s-28-1.2-41.6-3.5c-9.2-1.5-16.2-8.7-18.2-17.8l-12.5-57.1c-15.8-6.5-30.6-15.1-44-25.4L83.1 425.9c-8.8 2.8-18.6 .3-24.5-6.8-8.1-9.8-15.5-20.2-22.1-31.2l-4.7-8.1c-6.1-11-11.4-22.4-15.8-34.3-3.2-8.7-.5-18.4 6.4-24.6l43.3-39.4C64.6 273.1 64 264.6 64 256s.6-17.1 1.7-25.4L22.4 191.2c-6.9-6.2-9.6-15.9-6.4-24.6 4.4-11.9 9.7-23.3 15.8-34.3l4.7-8.1c6.6-11 14-21.4 22.1-31.2 5.9-7.2 15.7-9.6 24.5-6.8l55.7 17.7c13.4-10.3 28.2-18.9 44-25.4l12.5-57.1c2-9.1 9-16.3 18.2-17.8C227.3 1.2 241.2 0 255.2 0s27.9 1.2 41.5 3.5c9.2 1.5 16.2 8.7 18.2 17.8l12.5 57.1c15.8 6.5 30.6 15.1 44 25.4l55.7-17.7c8.8-2.8 18.6-.3 24.5 6.8 8.1 9.8 15.5 20.2 22.1 31.2l4.7 8.1c6.1 11 11.4 22.4 15.8 34.3zM256 336a80 80 0 1 0 0-160 80 80 0 1 0 0 160z"/></svg>
           Cambiar contraseña
@@ -48,6 +54,9 @@
   <!-- ============ MAIN ============ -->
   <main class="main">
     <h1 class="saludo" id="saludo"></h1>
+
+    <!-- Estado de la caja (lo llena js/caja.js) -->
+    <div class="caja-estado" id="cajaEstado" hidden></div>
 
     <!-- Cards -->
     <section class="cards-container">
@@ -91,7 +100,7 @@
     <section class="cierre-wrapper">
       <button class="btn-cierre" id="btnCierre">
         <svg viewBox="0 0 640 512" aria-hidden="true"><path d="M64 64C28.7 64 0 92.7 0 128V384c0 35.3 28.7 64 64 64H576c35.3 0 64-28.7 64-64V128c0-35.3-28.7-64-64-64H64zm0 64H576V384H64V128zm96 96c0-17.7 14.3-32 32-32h64c17.7 0 32 14.3 32 32s-14.3 32-32 32H192c-17.7 0-32-14.3-32-32zm160 0c0-17.7 14.3-32 32-32h64c17.7 0 32 14.3 32 32s-14.3 32-32 32H352c-17.7 0-32-14.3-32-32z"/></svg>
-        Cierre de caja
+        <span id="btnCajaTexto">Cargando caja…</span>
       </button>
     </section>
   </main>
@@ -106,6 +115,27 @@
   </footer>
 
   
+
+  <!-- ============ VENTANA: ABRIR CAJA / CORREGIR MONTO (RF-020) ============ -->
+  <div class="modal-caja" id="modalCaja" hidden>
+    <div class="modal-caja__caja" role="dialog" aria-modal="true" aria-labelledby="cajaTitulo">
+      <h2 id="cajaTitulo">Abrir caja</h2>
+      <p class="modal-caja__ayuda" id="cajaAyuda">¿Con cuánto efectivo empiezas?</p>
+
+      <div class="modal-caja__monto">
+        <span>$</span>
+        <input type="text" id="cajaMonto" inputmode="numeric" autocomplete="off" aria-label="Efectivo inicial">
+      </div>
+      <small class="modal-caja__nota" id="cajaNota"></small>
+
+      <p class="modal-caja__msg" id="cajaMsg" role="alert" hidden></p>
+
+      <div class="modal-caja__botones">
+        <button type="button" class="modal-caja__cancelar" id="cajaCancelar">Cancelar</button>
+        <button type="button" class="modal-caja__confirmar" id="cajaConfirmar">Confirmar</button>
+      </div>
+    </div>
+  </div>
 
   <!-- ============ VENTANA: REPORTAR UN PROBLEMA ============ -->
   <div class="modal-reporte" id="modalReporte" hidden>
@@ -144,6 +174,11 @@
 
 @push('scripts')
     <script src="{{ asset('js/dashboard.js') }}?v={{ filemtime(public_path('js/dashboard.js')) }}"></script>
+    <script src="{{ asset('js/caja.js') }}?v={{ filemtime(public_path('js/caja.js')) }}"></script>
+@endpush
+
+@push('estilos')
+    <link rel="stylesheet" href="{{ asset('css/caja.css') }}?v={{ filemtime(public_path('css/caja.css')) }}">
 @endpush
 
 @push('estilos')

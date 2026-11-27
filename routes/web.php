@@ -3,26 +3,51 @@
 use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 
-// ---------- Público ----------
-Route::get('/', [AuthController::class, 'mostrarLogin'])->name('login');
-Route::post('/login', [AuthController::class, 'login'])->name('login.enviar');
+// Rutas públicas
+Route::redirect('/', '/login');
 
-// ---------- Con sesión ----------
+Route::get('/login', [
+    AuthController::class,
+    'mostrarLogin'
+])->name('login');
+
+Route::post('/login', [
+    AuthController::class,
+    'login'
+])->middleware('throttle:15,1')->name('login.enviar');
+
+// Rutas autenticadas
 Route::middleware('auth')->group(function () {
-    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-    // Cambio de clave: permitido incluso con clave temporal
+    Route::post('/logout', [
+        AuthController::class,
+        'logout'
+    ])->name('logout');
+
+    // Cambio de contraseña
     Route::middleware('cuenta:temporal')->group(function () {
-        Route::get('/cambiar-clave', [AuthController::class, 'mostrarCambioClave'])->name('clave.form');
-        Route::post('/cambiar-clave', [AuthController::class, 'cambiarClave'])->name('clave.guardar');
+
+        Route::get('/cambiar-clave', [
+            AuthController::class,
+            'mostrarCambioClave'
+        ])->name('clave.form');
+
+        Route::post('/cambiar-clave', [
+            AuthController::class,
+            'cambiarClave'
+        ])->name('clave.guardar');
     });
 
-    // Todo lo demás exige cuenta vigente y clave definitiva.
-    // Cada área tiene su propio archivo para que dos personas no se pisen en git.
+    // Módulos protegidos
     Route::middleware('cuenta')->group(function () {
-        Route::middleware('rol:Administrador')->prefix('admin')->name('admin.')
+
+        // Administrador del sistema
+        Route::middleware('rol:Administrador')
+            ->prefix('admin')
+            ->name('admin.')
             ->group(base_path('routes/modulos/admin.php'));
 
+        // Dueño y Vendedor
         Route::middleware('rol:Dueno,Vendedor')
             ->group(base_path('routes/modulos/operativo.php'));
     });

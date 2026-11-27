@@ -2,7 +2,12 @@
 // LEDGERA · Administrador · Usuarios
 // Habla con Admin\UsuarioController (rutas /admin/usuarios...).
 // =====================================================
-const RUTA = '/admin/usuarios';
+const ES_ADMIN = window.LEDGERA.usuario?.rol === 'Administrador';
+const ID_USUARIO_ACTUAL = Number(window.LEDGERA.usuario?.id);
+
+const RUTA = ES_ADMIN
+    ? '/admin/usuarios'
+    : '/gestion/usuarios';
 
 // ==================== ESTADO LOCAL ====================
 let usuarios = [];
@@ -80,11 +85,13 @@ function renderTabla() {
 
     usuarios.forEach((u) => {
         const activo = u.estado === 'Activo';
+        const esCuentaPropia = Number(u.id) === ID_USUARIO_ACTUAL;
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>
                 ${esc(u.usuario)}
                 <span class="badge ${activo ? 'active' : 'inactive'}">${activo ? 'Activo' : 'Inactivo'}</span>
+                ${u.encargado ? '<span class="badge encargado" title="Tiene poderes operativos del Dueño">Encargado</span>' : ''}
             </td>
             <td>${esc(u.nombre)}</td>
             <td>${esc(u.cedula)}</td>
@@ -99,12 +106,24 @@ function renderTabla() {
                         <button class="dropdown-item" data-action="editar" data-id="${u.id}">
                             <i class="fas fa-pen"></i> Editar
                         </button>
-                        <button class="dropdown-item" data-action="restablecer" data-id="${u.id}">
-                            <i class="fas fa-key"></i> Restablecer clave
-                        </button>
-                        <button class="dropdown-item ${activo ? 'danger' : ''}" data-action="toggle" data-id="${u.id}">
-                            <i class="fas fa-${activo ? 'ban' : 'check'}"></i> ${activo ? 'Desactivar' : 'Activar'}
-                        </button>
+
+                        ${!ES_ADMIN && u.rol === 'Vendedor' && activo ? `
+                            <button class="dropdown-item" data-action="encargado" data-id="${u.id}">
+                                <i class="fas fa-${u.encargado ? 'user-minus' : 'user-shield'}"></i>
+                                ${u.encargado ? 'Quitar encargado' : 'Hacer encargado'}
+                            </button>
+                        ` : ''}
+
+                        ${!esCuentaPropia ? `
+                            <button class="dropdown-item" data-action="restablecer" data-id="${u.id}">
+                                <i class="fas fa-key"></i> Restablecer clave
+                            </button>
+
+                            <button class="dropdown-item ${activo ? 'danger' : ''}" data-action="toggle" data-id="${u.id}">
+                                <i class="fas fa-${activo ? 'ban' : 'check'}"></i>
+                                ${activo ? 'Desactivar' : 'Activar'}
+                            </button>
+                        ` : ''}
                     </div>
                 </div>
             </td>`;
@@ -145,6 +164,7 @@ document.addEventListener('click', (e) => {
         if (actionBtn.dataset.action === 'editar') abrirEditar(u);
         if (actionBtn.dataset.action === 'restablecer') restablecerClave(u);
         if (actionBtn.dataset.action === 'toggle') toggleActivo(u);
+        if (actionBtn.dataset.action === 'encargado') cambiarEncargado(u);
     }
 
     const cerrar = e.target.closest('[data-close]');
@@ -186,6 +206,8 @@ function abrirEditar(u) {
     $('editCedula').value = u.cedula;
     ajustarPuestoSegunRol(u.rol, $('rowEditPuesto'), $('editPuesto'));
     $('editPuesto').value = u.id_puesto || '';
+    // Solo el Administrador puede corregir el puesto
+    $('editPuesto').disabled = !ES_ADMIN;
     openModal(editModal);
 }
 
@@ -227,9 +249,24 @@ async function toggleActivo(u) {
     await cargarUsuarios();
 }
 
+// ==================== VENDEDOR ENCARGADO (solo Dueño) ====================
+async function cambiarEncargado(u) {
+    const activar = !u.encargado;
+    const texto = activar
+        ? `¿Hacer encargado a ${u.nombre}?\n\nPodrá pagar a proveedores y crear o editar proveedores.\nNO podrá gestionar tu equipo, cambiar el límite de caja ni la configuración del puesto.`
+        : `¿Quitarle el encargo a ${u.nombre}?\nVolverá a ser un vendedor normal.`;
+    if (!confirm(texto)) return;
+
+    const data = await enviar('/' + u.id + '/encargado', 'POST', { activo: activar });
+    if (!data.ok) { if (data.mensaje) alert(data.mensaje); return; }
+    await cargarUsuarios();
+}
+
 // ==================== HEADER ====================
-$('btnBack').addEventListener('click', () => { window.location.href = window.LEDGERA.base + '/admin'; });
-if (window.LEDGERA.usuario) $('headerUserName').textContent = window.LEDGERA.usuario.nombre;
+$('btnBack').addEventListener('click', () => {
+    window.location.href = window.LEDGERA.base
+        + (ES_ADMIN ? '/admin' : '/dashboard');
+});
 
 // ==================== INICIAR ====================
 cargarUsuarios();

@@ -1,0 +1,431 @@
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: 'Inter', Arial, sans-serif;
+    background: #F5F7F6;
+    color: #1C1C1C;
+}
+
+.cat-header {
+    background: #0F3D2E;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 5%;
+    gap: 16px;
+}
+
+.cat-header strong {
+    font-size: 23px;
+    letter-spacing: 2px;
+}
+
+.cat-header span {
+    font-size: 13px;
+}
+
+.cat-back {
+    color: white;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.cat-main {
+    max-width: 1320px;
+    padding: 32px;
+    margin: 0 auto;
+}
+
+.cat-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.cat-heading small {
+    color: #4A6A4A;
+    font-weight: 600;
+}
+
+.cat-heading h1 {
+    color: #0F3D2E;
+    font-size: 30px;
+    margin: 8px 0;
+}
+
+.cat-heading p {
+    color: #6B7280;
+    font-size: 14px;
+    margin: 0;
+}
+
+.cat-nav {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.cat-nav a {
+    padding: 10px 18px;
+    border: 1px solid #C8DED0;
+    border-radius: 8px;
+    color: #145A32;
+    text-decoration: none;
+    background: white;
+    font-size: 14px;
+}
+
+.cat-nav a.selected {
+    background: #145A32;
+    color: white;
+    border-color: #145A32;
+}
+
+.cat-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+    margin-bottom: 24px;
+}
+
+.cat-stats article {
+    background: white;
+    border: 1px solid #DCE8DF;
+    border-left: 4px solid #27AE60;
+    border-radius: 12px;
+    padding: 22px;
+    box-shadow: 0 4px 16px rgba(15, 61, 46, .05);
+}
+
+.cat-stats span {
+    display: block;
+    color: #6B7280;
+    font-size: 13px;
+    margin-bottom: 10px;
+}
+
+.cat-stats strong {
+    color: #0F3D2E;
+    font-size: 27px;
+    overflow-wrap: anywhere;
+}
+
+.cat-filters {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 18px;
+    background: white;
+    border: 1px solid #DCE8DF;
+    border-radius: 12px;
+    margin-bottom: 20px;
+}
+
+.cat-filters input {
+    flex: 1;
+    min-width: 180px;
+}
+
+.cat-filters input,
+.cat-filters select,
+.cat-modal input,
+.cat-modal textarea {
+    padding: 12px 14px;
+    background: #F5F7F6;
+    border: 1px solid #C8DED0;
+    border-radius: 8px;
+    font: inherit;
+    font-size: 14px;
+    color: #0F3D2E;
+}
+
+.cat-filters input:focus,
+.cat-filters select:focus,
+.cat-modal input:focus,
+.cat-modal textarea:focus {
+    outline: 2px solid #27AE60;
+    outline-offset: 1px;
+}
+
+.cat-primary,
+.cat-secondary {
+    border-radius: 8px;
+    padding: 11px 17px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    transition: background .2s;
+}
+
+.cat-primary {
+    background: #145A32;
+    color: white;
+    border: 1px solid #145A32;
+}
+
+.cat-primary:hover {
+    background: #0F3D2E;
+}
+
+.cat-secondary {
+    border: 1px solid #C8DED0;
+    background: white;
+    color: #145A32;
+}
+
+.cat-secondary:hover {
+    background: #E8F5EE;
+}
+
+.cat-table-wrapper {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #DCE8DF;
+    overflow-x: auto;
+}
+
+.cat-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 14px;
+}
+
+.cat-table th {
+    padding: 16px;
+    background: #E8F5EE;
+    color: #0F3D2E;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.cat-table td {
+    padding: 18px 16px;
+    border-bottom: 1px solid #E5EBE7;
+}
+
+.cat-table tr:last-child td {
+    border-bottom: 0;
+}
+
+.cat-table tbody tr:hover {
+    background: #F8FAF8;
+}
+
+.cat-money {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.cat-badge {
+    display: inline-block;
+    border-radius: 20px;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.cat-badge.active {
+    color: #145A32;
+    background: #E8F5EE;
+}
+
+.cat-badge.inactive {
+    color: #6B7280;
+    background: #EDF0EE;
+}
+
+.cat-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.cat-empty {
+    text-align: center;
+    color: #6B7280;
+    padding: 40px !important;
+}
+
+.cat-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 22px;
+    color: #6B7280;
+    font-size: 13px;
+}
+
+.cat-modal {
+    border: none;
+    border-radius: 16px;
+    padding: 28px;
+    width: min(470px, 92vw);
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, .2);
+}
+
+.cat-modal::backdrop {
+    background: rgba(15, 61, 46, .55);
+    backdrop-filter: blur(3px);
+}
+
+.cat-modal h2 {
+    margin: 0 0 20px;
+    color: #0F3D2E;
+    font-size: 21px;
+}
+
+.cat-modal label {
+    display: block;
+    color: #145A32;
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 8px;
+}
+
+.cat-modal input:not([type="checkbox"]),
+.cat-modal textarea {
+    width: 100%;
+    margin-bottom: 18px;
+}
+
+.cat-consent {
+    display: flex !important;
+    align-items: flex-start;
+    gap: 10px;
+    line-height: 1.5;
+}
+
+.cat-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 10px;
+    border-top: 1px solid #E5EBE7;
+    padding-top: 18px;
+    margin-top: 20px;
+}
+
+.cat-message {
+    padding: 15px;
+    margin-bottom: 18px;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.cat-message.success {
+    background: #E8F5EE;
+    color: #145A32;
+}
+
+.cat-message.error {
+    background: #FDECEC;
+    color: #A82A2A;
+}
+
+@media (max-width: 700px) {
+    .cat-main {
+        padding: 18px;
+    }
+
+    .cat-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .cat-stats {
+        gap: 8px;
+    }
+
+    .cat-stats article {
+        padding: 13px;
+    }
+
+    .cat-stats strong {
+        font-size: 19px;
+    }
+
+    .cat-stats span {
+        font-size: 11px;
+    }
+
+    .cat-header span {
+        display: none;
+    }
+
+    .cat-header strong {
+        font-size: 20px;
+    }
+
+    .cat-table {
+        min-width: 650px;
+    }
+}
+
+
+/* Identidad corporativa LEDGERA */
+
+.cat-header {
+    min-height: 88px;
+    background: var(--verde-oscuro);
+}
+
+.cat-header .logo-acento {
+    display: inline;
+    color: #54E49A;
+    font-size: inherit;
+}
+
+.cat-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.cat-user i {
+    font-size: 25px;
+}
+
+.cat-heading h1,
+.cat-stats strong {
+    color: var(--verde-oscuro);
+}
+
+.cat-primary,
+.cat-nav a.selected {
+    background: var(--verde-medio);
+    border-color: var(--verde-medio);
+}
+
+.cat-table th {
+    background: #D6E7D8;
+    color: var(--verde-oscuro);
+}
+
+.cat-table tbody tr:nth-child(odd) {
+    background: #F4F8F4;
+}
+
+.cat-modal {
+    color: var(--verde-oscuro);
+}
+
+.cat-back i {
+    margin-right: 8px;
+}
+

@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'cuenta' => \App\Http\Middleware\CuentaVigente::class,
             'rol' => \App\Http\Middleware\RolRequerido::class,
+            'poder' => \App\Http\Middleware\PoderRequerido::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

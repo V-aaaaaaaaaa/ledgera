@@ -49,8 +49,8 @@ class ReporteController extends Controller
 
         // ---------- Seguridad ----------
         $seguridad = [
-            'bloqueadas_ahora' => Usuario::whereNotNull('fecha_bloqueo')
-                ->where('fecha_bloqueo', '>', now()->subMinutes(AuthController::MINUTOS_BLOQUEO))
+            'bloqueadas_ahora' => Usuario::whereNotNull('bloqueado_hasta')   // BD v2: guarda hasta cuándo dura el bloqueo
+                ->where('bloqueado_hasta', '>', now())
                 ->count(),
             'clave_temporal' => Usuario::where('estado', 'Activo')->where('debe_cambiar_clave', 1)->count(),
             'sin_puesto' => Usuario::where('estado', 'Activo')
